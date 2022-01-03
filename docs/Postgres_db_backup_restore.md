@@ -176,5 +176,98 @@ psql -U user-pengfei -h 10.233.30.220 -p 5432 -W -d school -f ./dumps/db_backup.
 ```
 
 We have to create database before we apply the backup, that's because in the backup, pg_dump does not put any information
-about the database. To avoid this, we can use the -C option 
+about the database. To avoid this, we can use the -C (--create) option when creating the backup. Below code is an example
 
+```shell
+pg_dump -U user-pengfei -h 10.233.30.220 -p 5432  -W -C -d school  > ./dumps/db_backup_creation.sql 
+```
+
+## 3. Backup all database with pg_dumpall
+
+In section 2, we have backed up a single table, multiple tables, and a single database. But it may not enough. 
+For example, the user account and their privilege are not backed up. 
+
+As a result, to back up the entire PostgreSQL cluster (e.g. user account, etc.), we need to use **pg_dumpall**.
+
+The main differences between pg_dump and pg_dumpall is the **user privilege**.
+1. You will most likely have to connect to the DB server as a database superuser in order to produce a complete dump. 
+That's because pg_dumpall reads tables from all databases. 
+2. You will also need superuser privileges to execute the saved script (backup dump) in order to be allowed to add 
+users and groups and to create databases.
+
+Below command is an example, that will back up the entire PostgreSQL cluster and save it in the entire_cluster.sql file:
+```shell
+pg_dumpall -U user-pengfei -h 10.233.30.220 -p 5432 -W -f ./dumps/entire_cluster.sql
+```
+
+The prompt console will ask you your password. You will have to enter it multiple times. Because pg_dumpall needs to
+reconnect to the database server multiple times to complete the dump of all tables.
+
+To avoid this, you can configure the connection credential at "~/.pgpass" file. The credential must have the following
+format.
+```text
+# general format
+hostname:port:database:username:password
+
+# for example
+10.233.30.220:5432:school:user-pengfei:changeMe
+```
+
+> Note
+> You can have multiple credentials in the .pgpass. When a command of psql client (e.g. psql, pgdump, etc), the 
+> password of first match on host:port:db:username will be used.
+
+For the .pgpass to work, you need to satisfait the following points:
+1. .pgpass must have 0600 as ACL
+2. Your psql command can't have option -W (Force psql to prompt for a password before connecting to a database)
+3. Your psql command must have -U username -h hostname dbname to allow .pgpass to find the possible matching
+
+## 4. Using shell script to make backup easier
+
+### 4.1 Backup one database
+Suppose we name the following script as "pg_bkp.sh", and you have .pgpass setup correctly. Otherwise, you may want to
+adapt below script by adding port and password
+
+```shell
+#!/bin/bash
+# pg_bkp.sh
+# This script performs a pg_dump, saving the file the specified dir.
+# The first arg ($1) is the database user to connect with.
+# The second arg ($2) is the host name of the database
+# The third arg ($3) is the database name to backup and is included in the file name
+# The fourth arg ($4) is the path of where to put the backup
+# $(date +"%Y_%m_%d") includes the current system date into the actual file name.
+
+# Notice the -C option in the command so that we can restore if the database happens to be non-existent, without 
+# the need to manually create it beforehand. 
+pg_dump -U "$1" -h "$2" -C -d "$3" > "$4"/$(date +"%Y_%m_%d")_"$3".sql
+
+# example to run this script
+# sh pg_bkp.sh user-pengfei 10.233.30.220 north_wind /home/coder/work/dumps
+```
+
+If we run the script with the following parameters, it will create a backup of database school by using
+```shell
+sh pg_bkp.sh user-pengfei localhost school /tmp
+```
+
+### 4.2 Backup the entire postgres cluster
+
+Suppose we name the following script as "pg_cluster_bkp.sh", and you have .pgpass setup correctly. Otherwise, you may want to
+adapt below script by adding port and password. 
+
+Note the user should have admin privilege on the postgresql cluster. If you have no clue, we recommend you to 
+use **postgres** (the default admin user). 
+
+```shell
+#!/bin/bash
+# pg_cluster_bkp.sh
+# This shell script calls pg_dumpall and pipes into the gzip utility, then directs to
+# a directory for storage.
+# $(date +"%Y_%m_%d") incorporates the current system date into the file name.
+# The first arg ($1) is the database user to connect with.
+# The second arg ($2) is the host name of the database
+# The third arg ($3) is the path of where to put the backup
+  
+pg_dumpall -U "$1" -h "$2" | gzip > "$3"/$(date +"%Y_%m_%d")_pg_bck.gz
+```
