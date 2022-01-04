@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "k8scronjobpostgresbackup"
+version = "0.1.0"
+description = ""
+authors = ["Liu Pengfei <liu.pengfei@hotmail.fr>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+boto3 = "^1.20.27"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
