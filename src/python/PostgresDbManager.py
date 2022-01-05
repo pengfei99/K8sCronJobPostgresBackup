@@ -1,17 +1,22 @@
 import gzip
 import logging
+import os
 import subprocess
 from datetime import datetime
+from StorageEngineInterface import StorageEngineInterface
 
 log = logging.getLogger(__name__)
 
 
 class PostgresDbManager:
-    def __init__(self, user_name: str, user_pwd: str, host_name: str, port: str):
+    def __init__(self, user_name: str, user_pwd: str, host_name: str, port: str,
+                 remote_storage: StorageEngineInterface):
         self.user_name = user_name
         self.user_pwd = user_pwd
         self.host_name = host_name
         self.port = port
+        if remote_storage:
+            self.remote_storage = remote_storage
 
     def backup_db(self, db_name, output_path, compress=True):
         """
@@ -125,26 +130,24 @@ class PostgresDbManager:
                 log.exception(e)
                 exit(1)
 
-    def list_available_backups(storage_path, manager_config):
-        key_list = []
-        if storage_engine == 'LOCAL':
+    def list_available_backups(self, storage_path: str):
+        backup_list = []
+        # if the manager has a remote storage, use remote storage, if not use local storage
+        if self.remote_storage:
             try:
-                backup_folder = manager_config.get('LOCAL_BACKUP_PATH')
-                backup_list = os.listdir(backup_folder)
+                backup_list = self.remote_storage.list_dir(storage_path)
+            except Exception as e:
+                log.exception(e)
+                exit(1)
+        else:
+            # logger.info('Listing S3 bucket s3://{}/{} content :'.format(aws_bucket_name, aws_bucket_path))
+            try:
+                backup_list = os.listdir(storage_path)
             except FileNotFoundError:
-                print(f'Could not found {backup_folder} when searching for backups.'
+                log.error(f'Could not found {storage_path} when searching for backups.'
                       f'Check your .config file settings')
                 exit(1)
-        elif storage_engine == 'S3':
-            # logger.info('Listing S3 bucket s3://{}/{} content :'.format(aws_bucket_name, aws_bucket_path))
-            s3_client = boto3.client('s3')
-            s3_objects = s3_client.list_objects_v2(Bucket=manager_config.get('AWS_BUCKET_NAME'),
-                                                   Prefix=manager_config.get('AWS_BUCKET_PATH'))
-            backup_list = [s3_content['Key'] for s3_content in s3_objects['Contents']]
-
-        for bckp in backup_list:
-            key_list.append(bckp)
-        return key_list
+        return backup_list
 
 
 def main():
