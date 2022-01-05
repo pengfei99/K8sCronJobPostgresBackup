@@ -4,11 +4,13 @@ import boto3
 from botocore.config import Config
 from boto3 import exceptions
 import logging
+from src.python.StorageEngineInterface import StorageEngineInterface
 
 log = logging.getLogger(__name__)
 
 
-class S3IO:
+class S3StorageEngine(StorageEngineInterface):
+
     def __init__(self, endpoint: str, access_key: str, secret_key: str, session_token: str, region_name='us-east-1'):
         if session_token:
             self.s3_client = boto3.resource('s3', endpoint_url=endpoint, aws_access_key_id=access_key,
@@ -21,6 +23,36 @@ class S3IO:
                                             aws_secret_access_key=secret_key,
                                             config=Config(signature_version='s3v4'),
                                             region_name=region_name)
+
+    def upload_data(self, source_path: str, destination_path: str):
+        pass
+
+    def download_data(self, source_path: str, destination_path: str):
+        pass
+
+    def list_dir(self, source_path: str):
+        bucket_name, bucket_key = self.parse_path(source_path)
+        content_list = []
+        try:
+            s3_objects = self.s3_client.list_objects_v2(Bucket=bucket_name, Prefix=bucket_key)
+            content_list = [s3_content['Key'] for s3_content in s3_objects['Contents']]
+        except exceptions as e:
+            log.exception(f"can't list content for the giving path {source_path}")
+            exit(1)
+        return content_list
+
+    @staticmethod
+    def parse_path(path: str):
+        # note the path must have the format protocol://{bucket_name}/{bucket_key}
+        # for example s3a://user-pengfei/tmp/sparkcv/input is a valid path for S3StorageEngine
+        short_path = path.split("//")[-1]
+        print(short_path)
+        index = short_path.index("/")
+        bucket_name = short_path[0:index]
+        bucket_key = short_path[index+1:]
+        print(bucket_name)
+        print(bucket_key)
+        return bucket_name, bucket_key
 
     def write_byte_to_s3(self, bucket_name: str, bucket_key: str, data):
         """
@@ -52,8 +84,8 @@ class S3IO:
             if delete_origin:
                 os.remove(source_file_path)
         except exceptions.S3UploadFailedError as e:
-            log.exception(e)
-            exit(1)
+            log.error(e)
+            raise
 
     def download_file_from_s3(self, bucket_name: str, bucket_key: str, dest_path):
         """
@@ -68,7 +100,7 @@ class S3IO:
             self.s3_client.meta.client.download_file(bucket_name, bucket_key, dest_path)
         except Exception as e:
             log.exception(e)
-            exit(1)
+            raise
 
 # The difference between upload-file and put_object in boto3
 #
