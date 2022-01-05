@@ -25,10 +25,12 @@ class S3StorageEngine(StorageEngineInterface):
                                             region_name=region_name)
 
     def upload_data(self, source_path: str, destination_path: str):
-        pass
+        bucket_name, bucket_key = self.parse_path(destination_path)
+        self.upload_file_to_s3(bucket_name, bucket_key, source_path, delete_origin=True)
 
     def download_data(self, source_path: str, destination_path: str):
-        pass
+        bucket_name, bucket_key = self.parse_path(source_path)
+        self.download_file_from_s3(bucket_name, bucket_key, destination_path)
 
     def list_dir(self, source_path: str):
         bucket_name, bucket_key = self.parse_path(source_path)
@@ -46,12 +48,9 @@ class S3StorageEngine(StorageEngineInterface):
         # note the path must have the format protocol://{bucket_name}/{bucket_key}
         # for example s3a://user-pengfei/tmp/sparkcv/input is a valid path for S3StorageEngine
         short_path = path.split("//")[-1]
-        print(short_path)
         index = short_path.index("/")
         bucket_name = short_path[0:index]
-        bucket_key = short_path[index+1:]
-        print(bucket_name)
-        print(bucket_key)
+        bucket_key = short_path[index + 1:]
         return bucket_name, bucket_key
 
     def write_byte_to_s3(self, bucket_name: str, bucket_key: str, data):

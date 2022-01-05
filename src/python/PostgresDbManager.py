@@ -9,14 +9,13 @@ log = logging.getLogger(__name__)
 
 
 class PostgresDbManager:
-    def __init__(self, user_name: str, user_pwd: str, host_name: str, port: str,
-                 remote_storage: StorageEngineInterface):
+    def __init__(self, user_name: str, user_pwd: str, remote_storage: StorageEngineInterface, host_name: str,
+                 port="5432"):
         self.user_name = user_name
         self.user_pwd = user_pwd
         self.host_name = host_name
         self.port = port
-        if remote_storage:
-            self.remote_storage = remote_storage
+        self.remote_storage = remote_storage
 
     def backup_db(self, db_name, output_path, compress=True):
         """
@@ -145,14 +144,21 @@ class PostgresDbManager:
                 backup_list = os.listdir(storage_path)
             except FileNotFoundError:
                 log.error(f'Could not found {storage_path} when searching for backups.'
-                      f'Check your .config file settings')
+                          f'Check your .config file settings')
                 exit(1)
         return backup_list
 
 
 def main():
-    PostgresDbManager.backup_postgres_db_to_gz("user-pengfei", "gv8eba5xmsw4kt2uk1mn", "north_wind", "./dumps",
-                                               host_name="10.233.30.220")
+    user_name = "user-pengfei"
+    user_password = "changeMe"
+    host_name = "10.233.30.220"
+    db_name = "north_wind"
+    output_path = "/tmp"
+    p_manager = PostgresDbManager(user_name, user_password, None, host_name=host_name)
+    p_manager.backup_db(db_name, output_path, False)
+    # PostgresDbManager.backup_postgres_db_to_gz(user_name, user_password, db_name, output_path,
+    #                                           host_name=host_name)
 
     pass
 
