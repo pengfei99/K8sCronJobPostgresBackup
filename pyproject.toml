@@ -7,9 +7,10 @@ authors = ["Liu Pengfei <liu.pengfei@hotmail.fr>"]
 [tool.poetry.dependencies]
 python = "^3.8"
 boto3 = "^1.20.27"
-pytest = "^6.2.5"
+psycopg2-binary = "^2.9.3"
 
 [tool.poetry.dev-dependencies]
+pytest = "^6.2.5"
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]
