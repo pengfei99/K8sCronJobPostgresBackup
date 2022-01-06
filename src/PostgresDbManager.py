@@ -1,9 +1,11 @@
 import gzip
 import logging
-import os
+import psycopg2
 import subprocess
 from datetime import datetime
 
+from psycopg2 import DatabaseError
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 log = logging.getLogger(__name__)
 
@@ -54,7 +56,7 @@ class PostgresDbManager:
                 process = subprocess.Popen(
                     ['pg_dump',
                      '--dbname=postgresql://{}:{}@{}:{}/{}'.format(user_name, user_pwd, host_name, port, db_name),
-                     '-C',
+                     '--create',
                      '-f', full_path,
                      '-v'],
                     stdout=subprocess.PIPE
@@ -62,27 +64,28 @@ class PostgresDbManager:
                 output = process.communicate()[0]
                 if int(process.returncode) != 0:
                     log.info('Command failed. Return code : {}'.format(process.returncode))
-                    exit(1)
+                    raise
                 return output
             except Exception as e:
                 log.exception(e)
-                exit(1)
+                raise
         else:
             try:
                 process = subprocess.Popen(
                     ['pg_dump',
                      '--dbname=postgresql://{}:{}@{}:{}/{}'.format(user_name, user_pwd, host_name, port, db_name),
+                     '--create',
                      '-f', full_path],
                     stdout=subprocess.PIPE
                 )
                 output = process.communicate()[0]
                 if process.returncode != 0:
                     log.info('Command failed. Return code : {}'.format(process.returncode))
-                    exit(1)
+                    raise
                 return output
             except Exception as e:
                 log.exception(e)
-                exit(1)
+                raise
 
     @staticmethod
     def backup_postgres_db_to_gz(user_name: str, user_pwd: str, db_name: str, output_path: str, host_name="127.0.0.1",
@@ -121,31 +124,85 @@ class PostgresDbManager:
                 output = process.communicate()[0]
                 if process.returncode != 0:
                     log.info('Command failed. Return code : {}'.format(process.returncode))
-                    exit(1)
+                    raise
                 return output
             except Exception as e:
                 log.exception(e)
-                exit(1)
+                raise
 
     @staticmethod
-    def list_existing_databases(user_name: str, user_pwd: str, db_name: str, host_name="127.0.0.1", port="5432"):
+    def list_existing_databases(user_name: str, user_pwd: str, host_name="127.0.0.1", port="5432"):
         # cmd = f"psql --dbname=postgresql://{user_name}:{user_pwd}@{host_name}:{port}/{db_name} --list"
         # print(cmd)
         try:
             process = subprocess.Popen(
                 ['psql',
-                 '--dbname=postgresql://{}:{}@{}:{}/{}'.format(user_name, user_pwd, host_name, port, db_name),
+                 '--dbname=postgresql://{}:{}@{}:{}/{}'.format(user_name, user_pwd, host_name, port, 'postgres'),
                  '--list'],
                 stdout=subprocess.PIPE
             )
             output = process.communicate()[0]
             if int(process.returncode) != 0:
                 log.error('Command failed. Return code : {}'.format(process.returncode))
-                exit(1)
+                raise
             return output
         except Exception as e:
             log.error(e)
-            exit(1)
+            raise
+
+    @staticmethod
+    def list_databases(user_name: str, user_pwd: str, host_name="127.0.0.1", port="5432"):
+        con = None
+        try:
+            # connect to the default db of postgresql server (postgres) 
+            con = psycopg2.connect(dbname='postgres', port=port, user=user_name, host=host_name, password=user_pwd)
+        except Exception as e:
+            log.error(e)
+            raise
+
+        if con:
+            con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+            con.autocommit = True
+            cur = con.cursor()
+            cur.execute("SELECT datname FROM pg_database;")
+            return cur.fetchall()
+        else:
+            return []
+
+    @staticmethod
+    def restore_db_with_existing_db():
+        pass
+
+    @staticmethod
+    def rename_db(user_name: str, user_pwd: str, old_db_name: str, new_db_name: str, host_name="127.0.0.1",
+                  port="5432", force=False):
+        try:
+            # connect to the default db of postgresql server (postgres) 
+            con = psycopg2.connect(dbname='postgres', port=port,
+                                   user=user_name, host=host_name,
+                                   password=user_pwd)
+            con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+            cur = con.cursor()
+            existing_dbs = PostgresDbManager.list_databases(user_name, user_pwd, host_name)
+            # if the new db exist already and forch is true, we delete the existing db, and rename the old_db_name to 
+            # a new_db_name
+            if (new_db_name in existing_dbs) and force:
+                # close the existing db, and delete it
+                cur.execute("SELECT pg_terminate_backend( pid ) "
+                            "FROM pg_stat_activity "
+                            "WHERE pid <> pg_backend_pid( ) "
+                            "AND datname = '{}'".format(new_db_name))
+                cur.execute("DROP DATABASE IF EXISTS {}".format(new_db_name))
+            elif (new_db_name in existing_dbs) and not force:
+                log.exception("The new db name that you give already exist in the database server. Please use another "
+                              "name as the new db_name")
+                raise DatabaseError
+            # rename the old db name to new db name
+            cur.execute('ALTER DATABASE "{}" RENAME TO "{}";'.format(old_db_name, new_db_name))
+
+        except Exception as e:
+            log.error(e)
+            raise
 
 
 def main():
