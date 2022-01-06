@@ -88,6 +88,36 @@ class PostgresDbManager:
                 raise
 
     @staticmethod
+    def restore_postgres_db(user_name: str, user_pwd: str, db_name: str, backup_file_path: str, host_name="127.0.0.1",
+                            port="5432", verbose=False):
+        """Restore postgres db from a file."""
+        try:
+            subprocess_params = [
+                'pg_restore',
+                '--no-owner',
+                '--dbname=postgresql://{}:{}@{}:{}/{}'.format(user_name,
+                                                              user_pwd,
+                                                              host_name,
+                                                              port,
+                                                              db_name)
+            ]
+
+            if verbose:
+                subprocess_params.append('-v')
+
+            subprocess_params.append(backup_file_path)
+            process = subprocess.Popen(subprocess_params, stdout=subprocess.PIPE)
+
+            if int(process.returncode) != 0:
+                log.error('Command failed. Return code : {}'.format(process.returncode))
+                return False
+
+            return True
+        except Exception as e:
+            log.error("Issue with the db restore : {}".format(e))
+            return False
+
+    @staticmethod
     def backup_postgres_db_to_gz(user_name: str, user_pwd: str, db_name: str, output_path: str, host_name="127.0.0.1",
                                  port="5432"):
         """
@@ -132,27 +162,8 @@ class PostgresDbManager:
 
     @staticmethod
     def list_existing_databases(user_name: str, user_pwd: str, host_name="127.0.0.1", port="5432"):
-        # cmd = f"psql --dbname=postgresql://{user_name}:{user_pwd}@{host_name}:{port}/{db_name} --list"
-        # print(cmd)
-        try:
-            process = subprocess.Popen(
-                ['psql',
-                 '--dbname=postgresql://{}:{}@{}:{}/{}'.format(user_name, user_pwd, host_name, port, 'postgres'),
-                 '--list'],
-                stdout=subprocess.PIPE
-            )
-            output = process.communicate()[0]
-            if int(process.returncode) != 0:
-                log.error('Command failed. Return code : {}'.format(process.returncode))
-                raise
-            return output
-        except Exception as e:
-            log.error(e)
-            raise
-
-    @staticmethod
-    def list_databases(user_name: str, user_pwd: str, host_name="127.0.0.1", port="5432"):
         con = None
+        db_list = []
         try:
             # connect to the default db of postgresql server (postgres) 
             con = psycopg2.connect(dbname='postgres', port=port, user=user_name, host=host_name, password=user_pwd)
@@ -165,15 +176,19 @@ class PostgresDbManager:
             con.autocommit = True
             cur = con.cursor()
             cur.execute("SELECT datname FROM pg_database;")
-            return cur.fetchall()
-        else:
-            return []
+            # note the raw result of cur.fetchall is a list of tuple
+            # [('postgres',), ('template1',), ('template0',), ('north_wind',)]
+            # we need to convert it to list
+            for item in cur.fetchall():
+                db_list.append(item[0])
+        return db_list
 
     @staticmethod
     def restore_db_with_existing_db():
         pass
 
     @staticmethod
+    # note only the owner of the db has the right to alter the name
     def rename_db(user_name: str, user_pwd: str, old_db_name: str, new_db_name: str, host_name="127.0.0.1",
                   port="5432", force=False):
         try:
@@ -183,7 +198,7 @@ class PostgresDbManager:
                                    password=user_pwd)
             con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
             cur = con.cursor()
-            existing_dbs = PostgresDbManager.list_databases(user_name, user_pwd, host_name)
+            existing_dbs = PostgresDbManager.list_existing_databases(user_name, user_pwd, host_name)
             # if the new db exist already and forch is true, we delete the existing db, and rename the old_db_name to 
             # a new_db_name
             if (new_db_name in existing_dbs) and force:
@@ -203,6 +218,32 @@ class PostgresDbManager:
         except Exception as e:
             log.error(e)
             raise
+
+    @staticmethod
+    def create_db(user_name: str, user_pwd: str, db_name: str, host_name="127.0.0.1", port="5432") -> bool:
+        try:
+            con = psycopg2.connect(dbname='postgres', port=port,
+                                   user=user_name, host=host_name,
+                                   password=user_pwd)
+        except Exception as e:
+            log.error(e)
+            return False
+
+        con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        cur = con.cursor()
+        existing_dbs = PostgresDbManager.list_existing_databases(user_name, user_pwd, host_name)
+        if db_name in existing_dbs:
+            log.exception("The db name that you give already exist in the database server. Please use another "
+                          "name as the new db_name")
+            return False
+        else:
+            try:
+                cur.execute("CREATE DATABASE {} ;".format(db_name))
+                cur.execute("GRANT ALL PRIVILEGES ON DATABASE {} TO {} ;".format(db_name, user_name))
+            except Exception as e:
+                log.error(e)
+                return False
+        return True
 
 
 def main():
