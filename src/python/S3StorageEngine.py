@@ -4,7 +4,11 @@ import boto3
 from botocore.config import Config
 from boto3 import exceptions
 import logging
-from src.python.StorageEngineInterface import StorageEngineInterface
+
+from botocore.exceptions import ClientError
+
+from StorageEngineInterface import StorageEngineInterface
+from ProgressPercentage import ProgressPercentage
 
 log = logging.getLogger(__name__)
 
@@ -13,16 +17,16 @@ class S3StorageEngine(StorageEngineInterface):
 
     def __init__(self, endpoint: str, access_key: str, secret_key: str, session_token: str, region_name='us-east-1'):
         if session_token:
-            self.s3_client = boto3.resource('s3', endpoint_url=endpoint, aws_access_key_id=access_key,
-                                            aws_secret_access_key=secret_key,
-                                            aws_session_token=session_token,
-                                            config=Config(signature_version='s3v4'),
-                                            region_name=region_name)
+            self.s3_client = boto3.client('s3', endpoint_url=endpoint, aws_access_key_id=access_key,
+                                          aws_secret_access_key=secret_key,
+                                          aws_session_token=session_token,
+                                          config=Config(signature_version='s3v4'),
+                                          region_name=region_name)
         else:
-            self.s3_client = boto3.resource('s3', endpoint_url=endpoint, aws_access_key_id=access_key,
-                                            aws_secret_access_key=secret_key,
-                                            config=Config(signature_version='s3v4'),
-                                            region_name=region_name)
+            self.s3_client = boto3.client('s3', endpoint_url=endpoint, aws_access_key_id=access_key,
+                                          aws_secret_access_key=secret_key,
+                                          config=Config(signature_version='s3v4'),
+                                          region_name=region_name)
 
     def upload_data(self, source_path: str, destination_path: str):
         bucket_name, bucket_key = self.parse_path(destination_path)
@@ -79,12 +83,14 @@ class S3StorageEngine(StorageEngineInterface):
         :return: None
         """
         try:
-            self.s3_client.upload_file(source_file_path, bucket_name, bucket_key)
-            if delete_origin:
-                os.remove(source_file_path)
-        except exceptions.S3UploadFailedError as e:
+            response = self.s3_client.upload_file(source_file_path, bucket_name, bucket_key,
+                                                  Callback=ProgressPercentage(source_file_path))
+        except ClientError as e:
             log.error(e)
             raise
+        if delete_origin:
+            os.remove(source_file_path)
+        return True
 
     def download_file_from_s3(self, bucket_name: str, bucket_key: str, dest_path):
         """
@@ -96,7 +102,7 @@ class S3StorageEngine(StorageEngineInterface):
         :return: None
         """
         try:
-            self.s3_client.meta.client.download_file(bucket_name, bucket_key, dest_path)
+            self.s3_client.download_file(bucket_name, bucket_key, dest_path)
         except Exception as e:
             log.exception(e)
             raise
