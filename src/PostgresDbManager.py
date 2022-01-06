@@ -88,9 +88,12 @@ class PostgresDbManager:
                 raise
 
     @staticmethod
-    def restore_postgres_db(user_name: str, user_pwd: str, db_name: str, backup_file_path: str, host_name="127.0.0.1",
-                            port="5432", verbose=False):
-        """Restore postgres db from a file."""
+    def restore_db_with_custom_format(user_name: str, user_pwd: str, db_name: str, backup_file_path: str,
+                                      host_name="127.0.0.1",
+                                      port="5432", verbose=False):
+        """Restore postgres db from a dump file of custom format.
+           The dump file must be created by using the -Fc option for example: pg_dump -Fc mydb > db.dump
+        """
         try:
             subprocess_params = [
                 'pg_restore',
@@ -112,6 +115,39 @@ class PostgresDbManager:
                 log.error('Command failed. Return code : {}'.format(process.returncode))
                 return False
 
+            return True
+        except Exception as e:
+            log.error("Issue with the db restore : {}".format(e))
+            return False
+
+    @staticmethod
+    def restore_db_with_sql_format(user_name: str, user_pwd: str, db_name: str, backup_file_path: str,
+                                   host_name="127.0.0.1", port="5432"):
+        """
+           Restore postgres db from a dump file of sql(text) format.
+           The dump file must be created without the -Fc option for example: pg_dump mydb > db.dump
+           To restore such dump, we can use below
+           psql --dbname=postgresql://{user_name}:{user_pwd}@{host_name}:{port}/{db_name} -f {backup_file_path}
+           psql --dbname=postgresql://user-pengfei:pwd@10.233.30.220:5432/test2 -f /home/coder/work/dumps/db_backup.sql
+           note if the db_backup.sql is generated with the option -C/--create, it will contain the database information
+           and if we use it to populate a database that has a different name, we will have error. So mak
+
+        """
+        try:
+            subprocess_params = [
+                'psql',
+                '--dbname=postgresql://{}:{}@{}:{}/{}'.format(user_name,
+                                                              user_pwd,
+                                                              host_name,
+                                                              port,
+                                                              db_name),
+                '-f', backup_file_path
+            ]
+            process = subprocess.Popen(subprocess_params, stdout=subprocess.PIPE)
+            # Todo need to debug here, the restore works but with warnings
+            if int(process.returncode) != 0:
+                log.error('Command failed. Return code : {}'.format(process.returncode))
+                return False
             return True
         except Exception as e:
             log.error("Issue with the db restore : {}".format(e))
@@ -239,7 +275,7 @@ class PostgresDbManager:
         else:
             try:
                 cur.execute("CREATE DATABASE {} ;".format(db_name))
-                cur.execute("GRANT ALL PRIVILEGES ON DATABASE {} TO {} ;".format(db_name, user_name))
+                cur.execute('GRANT ALL PRIVILEGES ON DATABASE "{}" TO "{}" ;'.format(db_name, user_name))
             except Exception as e:
                 log.error(e)
                 return False

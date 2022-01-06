@@ -26,8 +26,15 @@ def main():
     s3.upload_data(source_path, destination_path)
     # PostgresDbManager.backup_postgres_db_to_gz(user_name, user_password, db_name, output_path,
     #                                           host_name=host_name)
-    dbs = PostgresDbManager.list_existing_databases(user_name, user_password, host_name=host_name)
-    print(dbs)
+    # dbs = PostgresDbManager.list_existing_databases(user_name, user_password, host_name=host_name)
+    # print(dbs)
+    # create db
+    # PostgresDbManager.create_db(user_name, user_password, 'test', host_name)
+    # rename db
+    # PostgresDbManager.rename_db(user_name, user_password, "test", "toto",host_name)
+
+    PostgresDbManager.restore_db_with_sql_format(user_name, user_password, "test",
+                                                 "/home/coder/work/dumps/db_backup.sql", host_name)
 
 if __name__ == "__main__":
     main()
