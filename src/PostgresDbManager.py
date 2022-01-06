@@ -3,20 +3,17 @@ import logging
 import os
 import subprocess
 from datetime import datetime
-from StorageEngineInterface import StorageEngineInterface
-from S3StorageEngine import S3StorageEngine
+
 
 log = logging.getLogger(__name__)
 
 
 class PostgresDbManager:
-    def __init__(self, user_name: str, user_pwd: str, remote_storage: StorageEngineInterface, host_name: str,
-                 port="5432"):
+    def __init__(self, user_name: str, user_pwd: str, host_name: str, port="5432"):
         self.user_name = user_name
         self.user_pwd = user_pwd
         self.host_name = host_name
         self.port = port
-        self.remote_storage = remote_storage
 
     def backup_db(self, db_name, output_path, compress=True):
         """
@@ -130,49 +127,28 @@ class PostgresDbManager:
                 log.exception(e)
                 exit(1)
 
-    def list_available_backups(self, storage_path: str):
-        backup_list = []
-        # if the manager has a remote storage, use remote storage, if not use local storage
-        if self.remote_storage:
-            try:
-                backup_list = self.remote_storage.list_dir(storage_path)
-            except Exception as e:
-                log.exception(e)
+    @staticmethod
+    def list_existing_databases(user_name: str, user_pwd: str, db_name: str, host_name="127.0.0.1", port="5432"):
+        # cmd = f"psql --dbname=postgresql://{user_name}:{user_pwd}@{host_name}:{port}/{db_name} --list"
+        # print(cmd)
+        try:
+            process = subprocess.Popen(
+                ['psql',
+                 '--dbname=postgresql://{}:{}@{}:{}/{}'.format(user_name, user_pwd, host_name, port, db_name),
+                 '--list'],
+                stdout=subprocess.PIPE
+            )
+            output = process.communicate()[0]
+            if int(process.returncode) != 0:
+                log.error('Command failed. Return code : {}'.format(process.returncode))
                 exit(1)
-        else:
-            # logger.info('Listing S3 bucket s3://{}/{} content :'.format(aws_bucket_name, aws_bucket_path))
-            try:
-                backup_list = os.listdir(storage_path)
-            except FileNotFoundError:
-                log.error(f'Could not found {storage_path} when searching for backups.'
-                          f'Check your .config file settings')
-                exit(1)
-        return backup_list
+            return output
+        except Exception as e:
+            log.error(e)
+            exit(1)
 
 
 def main():
-    user_name = "user-pengfei"
-    user_password = "gv8eba5xmsw4kt2uk1mn"
-    host_name = "10.233.30.220"
-    db_name = "north_wind"
-    output_path = "/tmp"
-    p_manager = PostgresDbManager(user_name, user_password, None, host_name=host_name)
-    p_manager.backup_db(db_name, output_path, False)
-
-    endpoint = "https://" + os.getenv("AWS_S3_ENDPOINT")
-    access_key = os.getenv("AWS_ACCESS_KEY_ID")
-    secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-    session_token = os.getenv("AWS_SESSION_TOKEN")
-
-    s3 = S3StorageEngine(endpoint, access_key, secret_key, session_token)
-
-    source_path = "/tmp/2022-01-06_north_wind_pg_bck.sql"
-    destination_path = "s3a://pengfei/me"
-
-    s3.upload_data(source_path, destination_path)
-    # PostgresDbManager.backup_postgres_db_to_gz(user_name, user_password, db_name, output_path,
-    #                                           host_name=host_name)
-
     pass
 
 
