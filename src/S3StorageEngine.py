@@ -57,6 +57,12 @@ class S3StorageEngine(StorageEngineInterface):
         bucket_key = short_path[index + 1:]
         return bucket_name, bucket_key
 
+    @staticmethod
+    def build_s3_object_key(source_file_path: str, bucket_key: str):
+        # build n s3 object key based on the given source file path and bucket key
+        source_file_name = os.path.basename(source_file_path)
+        return f"{bucket_key}/{source_file_name}"
+
     def write_byte_to_s3(self, bucket_name: str, bucket_key: str, data):
         """
         It writes input data in byte to a s3 bucket with given bucket name and key
@@ -82,8 +88,9 @@ class S3StorageEngine(StorageEngineInterface):
         :param delete_origin: default value is False. If set to True, after upload, the source file will be deleted.
         :return: None
         """
+        s3_object_name = self.build_s3_object_key(source_file_path, bucket_key)
         try:
-            response = self.s3_client.upload_file(source_file_path, bucket_name, bucket_key,
+            response = self.s3_client.upload_file(source_file_path, bucket_name, s3_object_name,
                                                   Callback=ProgressPercentage(source_file_path))
         except ClientError as e:
             log.error(e)
