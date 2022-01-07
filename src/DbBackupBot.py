@@ -1,3 +1,4 @@
+import locale
 import logging
 from typing import Optional
 
@@ -26,30 +27,45 @@ def make_backup(user_name, user_password, host_name, db_name, backup_file_parent
 
 
 def main():
+    # input params
     storage = ''
+    user_name = "user-pengfei"
+    user_password = "changeMe"
+    host_name = "10.233.30.220"
+    db_name = "north_wind"
+    destination_path = "s3a://pengfei/me"
+
+    # temp local path if you use remote storage
+    tmp_output_path = "/tmp"
     # Step0: Check storage
     if storage == 's3':
         # step1: build backup
-        user_name = "user-pengfei"
-        user_password = "changeMe"
-        host_name = "10.233.30.220"
-        db_name = "north_wind"
-        tmp_output_path = "/tmp"
-        log.info()
-        # step 2: upload backup
-        endpoint = "https://" + os.getenv("AWS_S3_ENDPOINT")
-        access_key = os.getenv("AWS_ACCESS_KEY_ID")
-        secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-        session_token = os.getenv("AWS_SESSION_TOKEN")
-
-        s3 = S3StorageEngine(endpoint, access_key, secret_key, session_token)
-
-        source_path = "/tmp/2022-01-06_north_wind_pg_bck.sql"
-        destination_path = "s3a://pengfei/me"
-
-        s3.upload_data(source_path, destination_path)
-        # PostgresDbManager.backup_postgres_db_to_gz(user_name, user_password, db_name, output_path,
-    #                                           host_name=host_name)
+        backup_file_path = make_backup(user_name, user_password, host_name, db_name, tmp_output_path)
+        if backup_file_path:
+            log.info("Backup complete, start uploading")
+            # step 2: upload backup
+            # get s3 creds
+            endpoint = "https://" + os.getenv("AWS_S3_ENDPOINT")
+            access_key = os.getenv("AWS_ACCESS_KEY_ID")
+            secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+            session_token = os.getenv("AWS_SESSION_TOKEN")
+            # build s3 client
+            s3 = S3StorageEngine(endpoint, access_key, secret_key, session_token)
+            # upload file
+            if destination_path.startswith("s3"):
+                if s3.upload_data(backup_file_path, destination_path):
+                    log.info(f"The backup file has been uploaded to {destination_path}")
+            else:
+                log.error("The s3 path is not valid. Please enter a valid s3 path. e.g. s3a://bucket_name/bucket_key")
+        else:
+            log.error("Backup process failed")
+    elif storage == locale:
+        # step1: build backup
+        backup_file_path = make_backup(user_name, user_password, host_name, db_name, destination_path)
+        if backup_file_path:
+            log.info(f"Backup process complete. The backup file is located at {backup_file_path}")
+        else:
+            log.error("Backup process failed")
 
 
 if __name__ == "__main__":

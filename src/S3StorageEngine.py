@@ -30,7 +30,7 @@ class S3StorageEngine(StorageEngineInterface):
 
     def upload_data(self, source_path: str, destination_path: str):
         bucket_name, bucket_key = self.parse_path(destination_path)
-        self.upload_file_to_s3(bucket_name, bucket_key, source_path, delete_origin=True)
+        return self.upload_file_to_s3(bucket_name, bucket_key, source_path, delete_origin=True)
 
     def download_data(self, source_path: str, destination_path: str):
         bucket_name, bucket_key = self.parse_path(source_path)
@@ -94,7 +94,7 @@ class S3StorageEngine(StorageEngineInterface):
                                                   Callback=ProgressPercentage(source_file_path))
         except ClientError as e:
             log.error(e)
-            raise
+            return False
         if delete_origin:
             os.remove(source_file_path)
         return True
