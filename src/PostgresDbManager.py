@@ -1,5 +1,7 @@
 import gzip
 import logging
+from typing import Optional
+
 import psycopg2
 import subprocess
 from datetime import datetime
@@ -17,26 +19,32 @@ class PostgresDbManager:
         self.host_name = host_name
         self.port = port
 
-    def backup_db(self, db_name, output_path, compress=True):
+    def backup_db(self, db_name, output_path, custom_format=False, creat_db=False) -> Optional[str]:
         """
 
         :param db_name:
         :param output_path:
-        :param compress:
+        :param custom_format:
+        :param creat_db:
         :return:
         """
-        if compress:
-            self.backup_postgres_db_to_gz(self.user_name, self.user_pwd, db_name, output_path, self.host_name,
-                                          self.port)
-        else:
-            self.backup_postgres_db_to_sql(self.user_name, self.user_pwd, db_name, output_path, self.host_name,
-                                           self.port)
+
+        # remove the compressed option. The compression is not the job of a db manager.
+        # self.backup_postgres_db_to_gz(self.user_name, self.user_pwd, db_name, output_path, self.host_name,
+        #                                   self.port, custom_format, creat_db)
+
+        return self.backup_postgres_db_to_sql(self.user_name, self.user_pwd, db_name, output_path, self.host_name,
+                                              self.port, custom_format, creat_db)
+
+    def get_db_list(self):
+        return self.list_existing_databases(self.user_name, self.user_pwd, self.host_name, self.port)
 
     @staticmethod
     def backup_postgres_db_to_sql(user_name: str, user_pwd: str, db_name: str, output_path: str, host_name="127.0.0.1",
-                                  port="5432", verbose=False):
+                                  port="5432", custom_format=False, creat_db=False) -> Optional[str]:
         """
         Backup postgres db to a file.
+
 
         :param user_name: username for connecting to the database server
         :param user_pwd: user password for connecting to the database server
@@ -44,40 +52,74 @@ class PostgresDbManager:
         :param output_path: the path to put the backup dump file
         :param host_name: the host name of the db server
         :param port: the port of the db server
-        :param verbose: default value is False, if set to true, it will log the communication message
-                        between client and server
+        :param custom_format: default value is False, if set to true, the backup dump file uses postgres custom dump
+                      format which is not plain text. This format can be only imported by using pg_restore
+        :param creat_db: Default value is False, if set to true, the option -C/--create will be added to the dump
+                         parameters, this will add the database name to the dump file. Then the restore will create
+                         db automatically. Note if you use a such dump to populate a database that has a different name,
+                         it will fail.
         :return: None
         """
         # build the full path of the destination file
         current_date = str(datetime.date(datetime.now()))
         full_path = f"{output_path}/{current_date}_{db_name}_pg_bck.sql"
-        if verbose:
+        try:
+            params = ['pg_dump',
+                      '--dbname=postgresql://{}:{}@{}:{}/{}'.format(user_name, user_pwd, host_name, port, db_name)]
+            if custom_format:
+                params.append('-Fc')
+                full_path = full_path + ".pgdump"
+            if creat_db:
+                params.append('-C')
+            params.append(['-f', full_path])
+            process = subprocess.Popen(params, stdout=subprocess.PIPE)
+            if int(process.returncode) != 0:
+                log.exception('Command failed. Return code : {}'.format(process.returncode))
+                return None
+        except Exception as e:
+            log.exception(e)
+            return None
+        return full_path
+
+    @staticmethod
+    def backup_postgres_db_to_gz(user_name: str, user_pwd: str, db_name: str, output_path: str, host_name="127.0.0.1",
+                                 port="5432", custom_format=False, creat_db=False):
+        """
+        Backup postgres db to a compressed file in format gz.
+
+        :param user_name: username for connecting to the database server
+        :param user_pwd: user password for connecting to the database server
+        :param db_name: db name that you need to back up
+        :param output_path: the path to put the backup dump file
+        :param host_name: the host name of the db server
+        :param port: the port of the db server
+        :param custom_format: default value is False, if set to true, the backup dump file uses postgres custom dump
+                      format which is not plain text. This format can be only imported by using pg_restore
+        :param creat_db: Default value is False, if set to true, the option -C/--create will be added to the dump
+                         parameters, this will add the database name to the dump file. Then the restore will create
+                         db automatically. Note if you use a such dump to populate a database that has a different name,
+                         it will fail.
+        :return: None
+        """
+
+        current_date = str(datetime.date(datetime.now()))
+        full_path = f"{output_path}/{current_date}_{db_name}_pg_bck.sql.gz"
+        with gzip.open(full_path, 'wb') as f:
+            # use subprocess to run the pg_dump command
             try:
-                process = subprocess.Popen(
-                    ['pg_dump',
-                     '--dbname=postgresql://{}:{}@{}:{}/{}'.format(user_name, user_pwd, host_name, port, db_name),
-                     '--create',
-                     '-f', full_path,
-                     '-v'],
-                    stdout=subprocess.PIPE
-                )
-                output = process.communicate()[0]
-                if int(process.returncode) != 0:
-                    log.info('Command failed. Return code : {}'.format(process.returncode))
-                    raise
-                return output
-            except Exception as e:
-                log.exception(e)
-                raise
-        else:
-            try:
-                process = subprocess.Popen(
-                    ['pg_dump',
-                     '--dbname=postgresql://{}:{}@{}:{}/{}'.format(user_name, user_pwd, host_name, port, db_name),
-                     '--create',
-                     '-f', full_path],
-                    stdout=subprocess.PIPE
-                )
+                params = ['pg_dump',
+                          '--dbname=postgresql://{}:{}@{}:{}/{}'.format(user_name, user_pwd, host_name, port, db_name)]
+                process = subprocess.Popen(params, stdout=subprocess.PIPE, universal_newlines=True)
+                if custom_format:
+                    params.append('-Fc')
+                if creat_db:
+                    params.append('-C')
+                # get the output of the subprocess, write output to the gz file line by line in streaming mode
+                # this way we don't need very large memory when backup big databases
+                for stdout_line in iter(process.stdout.readline, ""):
+                    f.write(stdout_line.encode('utf-8'))
+                process.stdout.close()
+                process.wait()
                 output = process.communicate()[0]
                 if process.returncode != 0:
                     log.info('Command failed. Return code : {}'.format(process.returncode))
@@ -152,49 +194,6 @@ class PostgresDbManager:
         except Exception as e:
             log.error("Issue with the db restore : {}".format(e))
             return False
-
-    @staticmethod
-    def backup_postgres_db_to_gz(user_name: str, user_pwd: str, db_name: str, output_path: str, host_name="127.0.0.1",
-                                 port="5432"):
-        """
-        Backup postgres db to a compressed file in format gz.
-
-        :param user_name: username for connecting to the database server
-        :param user_pwd: user password for connecting to the database server
-        :param db_name: db name that you need to back up
-        :param output_path: the path to put the backup dump file
-        :param host_name: the host name of the db server
-        :param port: the port of the db server
-
-        :return: None
-        """
-        # cmd = f"pg_dump --dbname=postgresql://{user_name}:{user_pwd}@{host_name}:{port}/{db_name} -v"
-        # print(cmd)
-        current_date = str(datetime.date(datetime.now()))
-        full_path = f"{output_path}/{current_date}_{db_name}_pg_bck.sql.gz"
-        with gzip.open(full_path, 'wb') as f:
-            # use subprocess to run the pg_dump command
-            try:
-                process = subprocess.Popen(['pg_dump',
-                                            '--dbname=postgresql://{}:{}@{}:{}/{}'.format(user_name, user_pwd,
-                                                                                          host_name,
-                                                                                          port, db_name),
-                                            '-v'],
-                                           stdout=subprocess.PIPE, universal_newlines=True)
-                # get the output of the subprocess, write output to the gz file line by line in streaming mode
-                # this way we don't need very large memory when backup big databases
-                for stdout_line in iter(process.stdout.readline, ""):
-                    f.write(stdout_line.encode('utf-8'))
-                process.stdout.close()
-                process.wait()
-                output = process.communicate()[0]
-                if process.returncode != 0:
-                    log.info('Command failed. Return code : {}'.format(process.returncode))
-                    raise
-                return output
-            except Exception as e:
-                log.exception(e)
-                raise
 
     @staticmethod
     def list_existing_databases(user_name: str, user_pwd: str, host_name="127.0.0.1", port="5432"):

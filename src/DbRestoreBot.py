@@ -51,6 +51,16 @@ def main():
     destination_path = "s3a://pengfei/me"
     # download the backup file and restore
     s3.download_data("s3a://pengfei/me/2022-01-06_north_wind_pg_bck.sql", "/home/coder/work/tmp.sql")
+    # create db
+    # PostgresDbManager.create_db(user_name, user_password, 'test', host_name)
+    # rename db
+    # PostgresDbManager.rename_db(user_name, user_password, "test", "toto",host_name)
+
+    PostgresDbManager.restore_db_with_sql_format(user_name, user_password, "test",
+                                                 "/home/coder/work/dumps/db_backup.sql", host_name)
+
+    # pg_dump --dbname=postgresql://user-pengfei:gv8eba5xmsw4kt2uk1mn@10.233.30.220:5432/north_wind -f /tmp/dump.sql -Fc -v
+    # pg_restore --no-owner --dbname=postgresql://user-pengfei:gv8eba5xmsw4kt2uk1mn@10.233.30.220:5432/north_wind /tmp/dump.sql
 
 
 if __name__ == "__main__":
