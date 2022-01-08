@@ -1,20 +1,25 @@
 import logging
-from PostgresDbManager import PostgresDbManager
+from src.db.PostgresDbManager import PostgresDbManager
 import os
-from S3StorageEngine import S3StorageEngine
+from src.storage.S3StorageEngine import S3StorageEngine
+from src.db.DbManagerInterface import DbManagerInterface
+from src.storage.StorageEngineInterface import StorageEngineInterface
 
 log = logging.getLogger(__name__)
 
 
 class DbRestoreBot:
 
-    def __init__(self,):
-        pass
+    def __init__(self, storage_engine: StorageEngineInterface, db_manager: DbManagerInterface):
+        self.db_manager = db_manager
+        self.storage_engine=storage_engine
+
 
     def list_available_backups(self, storage_path: str):
         backup_list = []
         # if the manager has a remote storage, use remote storage, if not use local storage
-        if self.remote_storage:
+        if self.storage_engine=="s3":
+
             try:
                 backup_list = self.remote_storage.list_dir(storage_path)
             except Exception as e:
@@ -30,6 +35,8 @@ class DbRestoreBot:
                 exit(1)
         return backup_list
 
+    def restore_latest_db_backup(self,):
+
 
 def main():
     user_name = "user-pengfei"
@@ -44,9 +51,7 @@ def main():
     access_key = os.getenv("AWS_ACCESS_KEY_ID")
     secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
     session_token = os.getenv("AWS_SESSION_TOKEN")
-
     s3 = S3StorageEngine(endpoint, access_key, secret_key, session_token)
-
     source_path = "/tmp/2022-01-06_north_wind_pg_bck.sql"
     destination_path = "s3a://pengfei/me"
     # download the backup file and restore

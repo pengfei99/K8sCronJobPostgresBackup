@@ -16,6 +16,7 @@ log = logging.getLogger(__name__)
 class S3StorageEngine(StorageEngineInterface):
 
     def __init__(self, endpoint: str, access_key: str, secret_key: str, session_token: str, region_name='us-east-1'):
+        self.storage_engine_type = "s3"
         if session_token:
             self.s3_client = boto3.client('s3', endpoint_url=endpoint, aws_access_key_id=access_key,
                                           aws_secret_access_key=secret_key,
@@ -28,15 +29,16 @@ class S3StorageEngine(StorageEngineInterface):
                                           config=Config(signature_version='s3v4'),
                                           region_name=region_name)
 
-    def upload_data(self, source_path: str, destination_path: str):
+    def upload_data(self, source_path: str, destination_path: str) -> bool:
         bucket_name, bucket_key = self.parse_path(destination_path)
         return self.upload_file_to_s3(bucket_name, bucket_key, source_path, delete_origin=True)
 
-    def download_data(self, source_path: str, destination_path: str):
+    def download_data(self, source_path: str, destination_path: str) -> bool:
         bucket_name, bucket_key = self.parse_path(source_path)
         self.download_file_from_s3(bucket_name, bucket_key, destination_path)
 
-    def list_dir(self, source_path: str):
+    def list_dir(self, source_path: str) -> list:
+
         bucket_name, bucket_key = self.parse_path(source_path)
         content_list = []
         try:
@@ -44,8 +46,10 @@ class S3StorageEngine(StorageEngineInterface):
             content_list = [s3_content['Key'] for s3_content in s3_objects['Contents']]
         except exceptions as e:
             log.exception(f"can't list content for the giving path {source_path}")
-            exit(1)
         return content_list
+
+    def get_storage_engine_type(self) -> str:
+        return self.storage_engine_type
 
     @staticmethod
     def parse_path(path: str):
@@ -78,7 +82,7 @@ class S3StorageEngine(StorageEngineInterface):
         # s3_object.put(Body=data)
         self.s3_client.put_object(Bucket=bucket_name, Key=bucket_key, Body=data)
 
-    def upload_file_to_s3(self, bucket_name: str, bucket_key: str, source_file_path, delete_origin=False):
+    def upload_file_to_s3(self, bucket_name: str, bucket_key: str, source_file_path, delete_origin=False) -> bool:
         """
         Upload a file to an AWS S3 bucket.
 
@@ -99,7 +103,7 @@ class S3StorageEngine(StorageEngineInterface):
             os.remove(source_file_path)
         return True
 
-    def download_file_from_s3(self, bucket_name: str, bucket_key: str, dest_path):
+    def download_file_from_s3(self, bucket_name: str, bucket_key: str, dest_path) -> bool:
         """
         Download a file to an AWS S3 bucket.
 
@@ -112,7 +116,8 @@ class S3StorageEngine(StorageEngineInterface):
             self.s3_client.download_file(bucket_name, bucket_key, dest_path)
         except Exception as e:
             log.exception(e)
-            raise
+            return False
+        return True
 
 # The difference between upload-file and put_object in boto3
 #

@@ -9,10 +9,12 @@ from datetime import datetime
 from psycopg2 import DatabaseError
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
+from src.db.DbManagerInterface import DbManagerInterface
+
 log = logging.getLogger(__name__)
 
 
-class PostgresDbManager:
+class PostgresDbManager(DbManagerInterface):
     def __init__(self, user_name: str, user_pwd: str, host_name: str, port="5432"):
         self.user_name = user_name
         self.user_pwd = user_pwd
@@ -20,15 +22,6 @@ class PostgresDbManager:
         self.port = port
 
     def backup_db(self, db_name, output_path, custom_format=False, creat_db=False) -> Optional[str]:
-        """
-
-        :param db_name:
-        :param output_path:
-        :param custom_format:
-        :param creat_db:
-        :return:
-        """
-
         # remove the compressed option. The compression is not the job of a db manager.
         # self.backup_postgres_db_to_gz(self.user_name, self.user_pwd, db_name, output_path, self.host_name,
         #                                   self.port, custom_format, creat_db)
@@ -36,8 +29,19 @@ class PostgresDbManager:
         return self.backup_postgres_db_to_sql(self.user_name, self.user_pwd, db_name, output_path, self.host_name,
                                               self.port, custom_format, creat_db)
 
-    def get_db_list(self):
+    def get_db_list(self) -> list:
         return self.list_existing_databases(self.user_name, self.user_pwd, self.host_name, self.port)
+
+    def restore_db(self, target_db_name, backup_file_path, backup_format: str) -> bool:
+
+        if backup_format == "psql":
+            return self.restore_db_with_custom_format(self.user_name, self.user_pwd, db_name=target_db_name,
+                                                      backup_file_path=backup_file_path,
+                                                      host_name=self.host_name, port=self.port)
+        elif backup_format == "sql":
+            return self.restore_db_with_sql_format(self.user_name, self.user_pwd, db_name=target_db_name,
+                                                   backup_file_path=backup_file_path, host_name=self.host_name,
+                                                   port=self.port)
 
     @staticmethod
     def backup_postgres_db_to_sql(user_name: str, user_pwd: str, db_name: str, output_path: str, host_name="127.0.0.1",
@@ -49,7 +53,7 @@ class PostgresDbManager:
         :param user_name: username for connecting to the database server
         :param user_pwd: user password for connecting to the database server
         :param db_name: db name that you need to back up
-        :param output_path: the path to put the backup dump file
+        :param output_path: the path of the output backup dump file
         :param host_name: the host name of the db server
         :param port: the port of the db server
         :param custom_format: default value is False, if set to true, the backup dump file uses postgres custom dump
@@ -196,7 +200,7 @@ class PostgresDbManager:
             return False
 
     @staticmethod
-    def list_existing_databases(user_name: str, user_pwd: str, host_name="127.0.0.1", port="5432"):
+    def list_existing_databases(user_name: str, user_pwd: str, host_name="127.0.0.1", port="5432") -> list:
         con = None
         db_list = []
         try:
