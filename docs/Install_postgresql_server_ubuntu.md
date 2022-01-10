@@ -52,3 +52,63 @@ sudo vim /etc/postgresql/12/main/pg_hba.conf
 # if all the four field match, the authentication uses md5.
 host all all 0.0.0.0/0 md5
 ```
+
+
+## 3. Create user and database
+
+Below command needs to be run in a psql terminal
+
+```postgresql
+-- create db
+create database mydb;
+
+-- create user
+create user myuser with encrypted password 'mypass';
+
+-- assign privilege to manage a database
+grant all privileges on database mydb to myuser;
+```
+
+## 4. Grant special privilege
+
+### 4.1 DB creation 
+Note by default, user does not have the right to create database. To assign such right, use the following command
+
+```postgresql
+-- general format
+ALTER USER username CREATEDB;
+
+-- for example
+ALTER USER pliu CREATEDB;
+
+
+```
+
+### 4.2 Superuser
+
+
+```postgresql
+-- Make a user superuser:
+
+ALTER USER myuser WITH SUPERUSER;
+```
+
+Remove superuser status:
+
+```postgresql
+ALTER USER username WITH NOSUPERUSER;
+```
+
+### 4.3 Default privileges
+
+Those statements above only affect the **current existing tables**. As a result, for newly created database, you need
+to rerun the above commands. 
+
+To make the privilege apply to newly created tables, you need to use alter default. For example:
+```postgresql
+ALTER DEFAULT PRIVILEGES
+FOR USER username
+IN SCHEMA schema_name
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO username;
+
+```
