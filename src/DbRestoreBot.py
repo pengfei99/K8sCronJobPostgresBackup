@@ -9,6 +9,11 @@ from src.storage.StorageEngineInterface import StorageEngineInterface
 from src.storage.LocalStorageEngine import LocalStorageEngine
 
 log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+log.addHandler(handler)
 
 
 class DbRestoreBot:
@@ -45,20 +50,38 @@ class DbRestoreBot:
                 latest_backup_path = os.path.join(storage_path, file_name)
         return latest_backup_path
 
-    def restore_latest_db_backup(self, db_name: str, backup_file_path: str):
+    def restore_db_backup(self, db_name: str, backup_file_path: str):
+        # create db if the given db_name does not exist yet
+        if not self.db_manager.has_db(db_name):
+            self.db_manager.create_db(db_name)
         # in our case, we name the postgres custom format with extension .pgdump; the plain text sql format with .sql
         if backup_file_path.endswith(".pgdump"):
+            log.info("restore_db_backup with custom format")
             return self.db_manager.restore_db(db_name, backup_file_path, backup_format="psql")
         elif backup_file_path.endswith(".sql"):
+            log.info("restore_db_backup with sql plain text format")
             return self.db_manager.restore_db(db_name, backup_file_path, backup_format="sql")
+
+    def restore_db_with_latest_backup(self, db_name, backup_root_path: str):
+        latest_backup = self.get_latest_backup_name(backup_root_path, db_name)
+        print(latest_backup)
+
+        # start restore process
+        # step1 download data from remote storage to local
+        local_path = f"/tmp/latest_{db_name}_backup.sql"
+        if self.storage_engine.download_data(latest_backup, local_path):
+            # step2: restore db with the backup file
+            self.restore_db_backup(db_name, local_path)
+        else:
+            log.error("Fail to download the backup file")
 
 
 def main():
     # create an instance of local storage
     local = LocalStorageEngine()
-    user_name = "user-pengfei"
-    user_password = "changeMe"
-    host_name = "10.233.30.220"
+    user_name = "pliu"
+    user_password = "pliu"
+    host_name = "127.0.0.1"
 
     # create an instance of postgresDbManager
     p_manager = PostgresDbManager(user_name, user_password, host_name=host_name, port="5432")
@@ -66,20 +89,16 @@ def main():
     # create an instance of DbRestoreBot
     restore_bot = DbRestoreBot(local, p_manager)
 
-    # get latest backup
+    # restore latest backup
     storage_path = "/tmp/sql_bkp"
     db_name = "north_wind"
-    latest_backup = restore_bot.get_latest_backup_name(storage_path, db_name)
-    print(latest_backup)
+    # restore_bot.restore_db_with_latest_backup(db_name,storage_path)
 
-    # start restore process
-    # step1 download data
-    local_path = f"/tmp/latest_{db_name}_backup.sql"
-    if local.download_data(latest_backup, local_path):
-        # step2: restore
-        restore_bot.restore_latest_db_backup()
-    else:
-        log.error("Fail to download the backup file")
+    # restore a specific backup
+    backup_file1 = "/home/pliu/git/LearningSQL/SQL_practice_problems/data_base/northwind_ddl.sql"
+    backup_file2 = "/home/pliu/git/LearningSQL/SQL_practice_problems/data_base/northwind_data.sql"
+    restore_bot.restore_db_backup("test", backup_file1)
+    restore_bot.restore_db_backup("test", backup_file2)
 
 
 if __name__ == "__main__":
