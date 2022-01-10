@@ -1,5 +1,11 @@
-from StorageEngineInterface import StorageEngineInterface
+import logging
+import os
 import shutil
+from typing import Optional
+
+from src.storage.StorageEngineInterface import StorageEngineInterface
+
+log = logging.getLogger(__name__)
 
 
 class LocalStorageEngine(StorageEngineInterface):
@@ -7,16 +13,31 @@ class LocalStorageEngine(StorageEngineInterface):
         self.storage_engine_type = "local"
 
     def upload_data(self, source_path: str, destination_path: str) -> bool:
+        return self.move_file(source_path, destination_path)
+
+    def download_data(self, source_path: str, destination_path: str) -> bool:
+        return self.move_file(source_path, destination_path)
+
+    def list_dir(self, source_path: str) -> Optional[list]:
+        try:
+            backup_list = [f for f in os.listdir(source_path) if os.path.isfile(os.path.join(source_path, f))]
+        except FileNotFoundError:
+            log.error(f'Could not found {source_path} when searching for backups.'
+                      f'Check your .config file settings')
+            return None
+        return backup_list
+
+    def get_storage_engine_type(self) -> str:
+        return self.storage_engine_type
+
+    @staticmethod
+    def move_file(source_path: str, destination_path: str):
         if source_path == destination_path:
             return True
         else:
-            shutil
-
-    def download_data(self, source_path: str, destination_path: str) -> bool:
-        pass
-
-    def list_dir(self, source_path: str) -> list:
-        pass
-
-    def get_storage_engine_type(self) -> str:
-        pass
+            try:
+                shutil.copy(source_path, destination_path)
+            except Exception as e:
+                log.exception(e)
+                return False
+            return True
