@@ -48,6 +48,8 @@ PostgresDbManager.restore_db_with_sql_format(user_name, user_password, "test",
 
 # pg_dump --dbname=postgresql://user-pengfei:gv8eba5xmsw4kt2uk1mn@10.233.30.220:5432/north_wind -f /tmp/dump.sql -Fc -v
 # pg_restore --no-owner --dbname=postgresql://user-pengfei:gv8eba5xmsw4kt2uk1mn@10.233.30.220:5432/north_wind /tmp/dump.sql
+
+# psql --dbname=postgresql://pliu:pliu@127.0.0.1:5432/test -f /home/pliu/git/LearningSQL/SQL_practice_problems/data_base/northwind_ddl.sql
 ```
 
 ## Storage Engine
