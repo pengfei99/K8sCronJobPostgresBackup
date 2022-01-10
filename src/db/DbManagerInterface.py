@@ -10,7 +10,11 @@ class DbManagerInterface(metaclass=abc.ABCMeta):
                 hasattr(subclass, 'get_db_list') and
                 callable(subclass.get_db_list) and
                 hasattr(subclass, 'restore_db') and
-                callable(subclass.restore_db)
+                callable(subclass.restore_db) and
+                hasattr(subclass, 'create_db') and
+                callable(subclass.create_db) and
+                hasattr(subclass, 'has_db') and
+                callable(subclass.has_db)
                 or
                 NotImplemented)
 
@@ -41,8 +45,7 @@ class DbManagerInterface(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def restore_db(self, target_db_name, backup_file_path, backup_format: str) -> bool:
-
+    def restore_db(self, target_db_name: str, backup_file_path: str, backup_format: str) -> bool:
         """ restore a database
         :param target_db_name: The name of the database to be restored
         :param backup_file_path: The full file path of the backup file
@@ -51,4 +54,24 @@ class DbManagerInterface(metaclass=abc.ABCMeta):
 
         """
 
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def create_db(self, target_db_name: str) -> bool:
+        """ create an empty database
+        :param target_db_name: The name of the database to be created
+        :return: return true if db creation complete successfully. return false if failed
+
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def has_db(self, target_db_name: str) -> bool:
+        """
+        check if the give database name already exist or not
+
+        :param target_db_name: The name of the database to be checked
+        :return: return true if db exist. return false if it does not exist
+
+        """
         raise NotImplementedError
