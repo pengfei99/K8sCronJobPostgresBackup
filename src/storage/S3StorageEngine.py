@@ -1,14 +1,14 @@
 import os
+from typing import Optional
 
 import boto3
 from botocore.config import Config
 from boto3 import exceptions
 import logging
-
 from botocore.exceptions import ClientError
 
-from StorageEngineInterface import StorageEngineInterface
-from ProgressPercentage import ProgressPercentage
+from src.storage.ProgressPercentage import ProgressPercentage
+from src.storage.StorageEngineInterface import StorageEngineInterface
 
 log = logging.getLogger(__name__)
 
@@ -35,17 +35,17 @@ class S3StorageEngine(StorageEngineInterface):
 
     def download_data(self, source_path: str, destination_path: str) -> bool:
         bucket_name, bucket_key = self.parse_path(source_path)
-        self.download_file_from_s3(bucket_name, bucket_key, destination_path)
+        return self.download_file_from_s3(bucket_name, bucket_key, destination_path)
 
-    def list_dir(self, source_path: str) -> list:
+    def list_dir(self, source_path: str) -> Optional[list]:
 
         bucket_name, bucket_key = self.parse_path(source_path)
-        content_list = []
         try:
             s3_objects = self.s3_client.list_objects_v2(Bucket=bucket_name, Prefix=bucket_key)
             content_list = [s3_content['Key'] for s3_content in s3_objects['Contents']]
         except exceptions as e:
-            log.exception(f"can't list content for the giving path {source_path}")
+            log.exception(f"can't list content for the giving path {source_path}. {e}")
+            return None
         return content_list
 
     def get_storage_engine_type(self) -> str:
@@ -94,8 +94,8 @@ class S3StorageEngine(StorageEngineInterface):
         """
         s3_object_name = self.build_s3_object_key(source_file_path, bucket_key)
         try:
-            response = self.s3_client.upload_file(source_file_path, bucket_name, s3_object_name,
-                                                  Callback=ProgressPercentage(source_file_path))
+            self.s3_client.upload_file(source_file_path, bucket_name, s3_object_name,
+                                       Callback=ProgressPercentage(source_file_path))
         except ClientError as e:
             log.error(e)
             return False

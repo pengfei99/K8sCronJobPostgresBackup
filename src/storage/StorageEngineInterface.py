@@ -1,4 +1,5 @@
 import abc
+from typing import Optional
 
 
 class StorageEngineInterface(metaclass=abc.ABCMeta):
@@ -39,7 +40,7 @@ class StorageEngineInterface(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def list_dir(self, source_path: str) -> list:
+    def list_dir(self, source_path: str) -> Optional[list]:
         """list the content of a directory
 
         :param source_path: The path for finding available backup
