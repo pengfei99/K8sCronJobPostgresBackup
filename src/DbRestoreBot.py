@@ -43,8 +43,9 @@ class DbRestoreBot:
             current_date = datetime.datetime.now()
             latest_backup_path = ""
             min_time = datetime.timedelta(days=30)
-            for file_name in backup_list:
-                time_stamp = self.storage_engine.get_timestamp_from_file_name(file_name)
+            for raw_file_name in backup_list:
+                file_name = self.storage_engine.get_short_file_name(raw_file_name)
+                time_stamp = datetime.datetime.strptime(file_name.split("_")[0], '%Y-%M-%d')
                 # arithmetic operations on datetime will return a timedelta type
                 if min_time > current_date - time_stamp:
                     min_time = current_date - time_stamp
