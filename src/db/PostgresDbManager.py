@@ -90,8 +90,11 @@ class PostgresDbManager(DbManagerInterface):
                 full_path = full_path + ".pgdump"
             if creat_db:
                 params.append('-C')
-            params.append(['-f', full_path])
+            params.append('-f')
+            params.append(full_path)
             process = subprocess.Popen(params, stdout=subprocess.PIPE)
+            output = process.communicate()[0]
+            log.info(output)
             if int(process.returncode) != 0:
                 log.exception('Command failed. Return code : {}'.format(process.returncode))
                 return None
@@ -171,7 +174,8 @@ class PostgresDbManager(DbManagerInterface):
 
             subprocess_params.append(backup_file_path)
             process = subprocess.Popen(subprocess_params, stdout=subprocess.PIPE)
-
+            output = process.communicate()[0]
+            log.info(output)
             if int(process.returncode) != 0:
                 log.error('Command failed. Return code : {}'.format(process.returncode))
                 return False
