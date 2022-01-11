@@ -13,8 +13,8 @@ class StorageEngineInterface(metaclass=abc.ABCMeta):
                 callable(subclass.list_dir) and
                 hasattr(subclass, 'get_storage_engine_type') and
                 callable(subclass.get_storage_engine_type) and
-                hasattr(subclass, 'get_timestamp_from_file_name') and
-                callable(subclass.get_timestamp_from_file_name)
+                hasattr(subclass, 'get_short_file_name') and
+                callable(subclass.get_short_file_name)
                 or
                 NotImplemented)
 
@@ -64,10 +64,10 @@ class StorageEngineInterface(metaclass=abc.ABCMeta):
     # tmp/sql_backup/2022-01-11_test_pg_bck.sql.
     # So we need to have one specific implementation for each StorageEngine
     @abc.abstractmethod
-    def get_timestamp_from_file_name(self, file_name: str):
+    def get_short_file_name(self, file_name: str):
         """
-         This function extract the timestamp from the backup file
-        :param file_name:
+         This function extract the short file name from the s3 object key
+        :param file_name: the raw file name for the storage engine
         :return:
         """
 

@@ -1,7 +1,6 @@
 import logging
 import os
 import shutil
-import datetime
 from typing import Optional
 
 from src.storage.StorageEngineInterface import StorageEngineInterface
@@ -31,9 +30,8 @@ class LocalStorageEngine(StorageEngineInterface):
     def get_storage_engine_type(self) -> str:
         return self.storage_engine_type
 
-    def get_timestamp_from_file_name(self, file_name: str):
-        return datetime.datetime.strptime(file_name.split("_")[0], '%Y-%M-%d')
-
+    def get_short_file_name(self, file_name: str):
+        return file_name
 
     @staticmethod
     def move_file(source_path: str, destination_path: str):
