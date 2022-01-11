@@ -12,7 +12,9 @@ class StorageEngineInterface(metaclass=abc.ABCMeta):
                 hasattr(subclass, 'list_dir') and
                 callable(subclass.list_dir) and
                 hasattr(subclass, 'get_storage_engine_type') and
-                callable(subclass.get_storage_engine_type)
+                callable(subclass.get_storage_engine_type) and
+                hasattr(subclass, 'get_timestamp_from_file_name') and
+                callable(subclass.get_timestamp_from_file_name)
                 or
                 NotImplemented)
 
@@ -54,4 +56,19 @@ class StorageEngineInterface(metaclass=abc.ABCMeta):
 
         :return: the type of the storage engine, e.g. s3, local
         """
+        raise NotImplementedError
+
+    # move this method from DbRestoreBot to StorageEngine, because each storage has different definition for
+    # file_name. In linux fs, the file_name of /tmp/sql_backup/2022-01-11_test_pg_bck.sql is 2022-01-11_test_pg_bck.sql
+    # For s3, the file name (object key) of s3://pengfei/tmp/sql_backup/2022-01-11_test_pg_bck.sql is
+    # tmp/sql_backup/2022-01-11_test_pg_bck.sql.
+    # So we need to have one specific implementation for each StorageEngine
+    @abc.abstractmethod
+    def get_timestamp_from_file_name(self, file_name: str):
+        """
+         This function extract the timestamp from the backup file
+        :param file_name:
+        :return:
+        """
+
         raise NotImplementedError

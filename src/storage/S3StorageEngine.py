@@ -10,6 +10,7 @@ from botocore.exceptions import ClientError
 
 from src.storage.ProgressPercentage import ProgressPercentage
 from src.storage.StorageEngineInterface import StorageEngineInterface
+import datetime
 
 log = logging.getLogger(__name__)
 
@@ -66,6 +67,9 @@ class S3StorageEngine(StorageEngineInterface):
 
     def get_storage_engine_type(self) -> str:
         return self.storage_engine_type
+
+    def get_timestamp_from_file_name(self, file_name: str):
+        return datetime.datetime.strptime(file_name.split("/")[-1].split("_")[0], '%Y-%M-%d')
 
     @staticmethod
     def parse_path(path: str):
