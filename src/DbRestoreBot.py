@@ -1,7 +1,7 @@
 import logging
 import os.path
 import datetime
-import re
+from typing import Optional
 
 from src.db.DbManagerInterface import DbManagerInterface
 from src.db.PostgresDbManager import PostgresDbManager
@@ -29,26 +29,29 @@ class DbRestoreBot:
     def is_backup_of_db(file_name, db_name):
         return db_name in file_name
 
-    def get_latest_backup_name(self, storage_path: str, db_name: str) -> str:
+    def get_latest_backup_name(self, storage_path: str, db_name: str) -> Optional[str]:
         """
-        This function search the latest backup
+        This function search the latest backup of the given database name
 
-        :param db_name:
-        :param storage_path:
-        :return:
+        :param storage_path: the parent path of storage that stores the backup of the database
+        :param db_name: the target database name
+        :return: return the full path and name of the latest backup
         """
         all_backups = self.list_available_backups(storage_path)
         backup_list = [f for f in all_backups if self.is_backup_of_db(f, db_name)]
-        current_date = datetime.datetime.now()
-        latest_backup_path = ""
-        min_time = datetime.timedelta(days=30)
-        for file_name in backup_list:
-            time_stamp = datetime.datetime.strptime(file_name.split("_")[0], '%Y-%M-%d')
-            # arithmetic operations on datetime will return a timedelta type
-            if min_time > current_date - time_stamp:
-                min_time = current_date - time_stamp
-                latest_backup_path = os.path.join(storage_path, file_name)
-        return latest_backup_path
+        if backup_list:
+            current_date = datetime.datetime.now()
+            latest_backup_path = ""
+            min_time = datetime.timedelta(days=30)
+            for file_name in backup_list:
+                time_stamp = self.storage_engine.get_timestamp_from_file_name(file_name)
+                # arithmetic operations on datetime will return a timedelta type
+                if min_time > current_date - time_stamp:
+                    min_time = current_date - time_stamp
+                    latest_backup_path = os.path.join(storage_path, file_name)
+            return latest_backup_path
+        else:
+            return None
 
     def restore_db_backup(self, db_name: str, backup_file_path: str):
         # create db if the given db_name does not exist yet
@@ -63,17 +66,20 @@ class DbRestoreBot:
             return self.db_manager.restore_db(db_name, backup_file_path, backup_format="sql")
 
     def restore_db_with_latest_backup(self, db_name, backup_root_path: str):
+        # get the path of the latest backup
         latest_backup = self.get_latest_backup_name(backup_root_path, db_name)
-        print(latest_backup)
-
-        # start restore process
-        # step1 download data from remote storage to local
-        local_path = f"/tmp/latest_{db_name}_backup.sql"
-        if self.storage_engine.download_data(latest_backup, local_path):
-            # step2: restore db with the backup file
-            self.restore_db_backup(db_name, local_path)
+        # start the restore process if we found a backup file
+        if latest_backup:
+            log.info(f"Find the latest backup file {latest_backup} for db {db_name} ")
+            # step1 download data from remote storage to local
+            local_path = f"/tmp/latest_{db_name}_backup.sql"
+            if self.storage_engine.download_data(latest_backup, local_path):
+                # step2: restore db with the backup file
+                self.restore_db_backup(db_name, local_path)
+            else:
+                log.error("Fail to download the backup file")
         else:
-            log.error("Fail to download the backup file")
+            log.exception(f"There is no backup file for the given db name {db_name} in directory {backup_root_path}")
 
 
 def main():
@@ -90,15 +96,15 @@ def main():
     restore_bot = DbRestoreBot(local, p_manager)
 
     # restore latest backup
-    storage_path = "/tmp/sql_bkp"
-    db_name = "north_wind"
-    # restore_bot.restore_db_with_latest_backup(db_name,storage_path)
+    storage_path = "/tmp/sql_backup"
+    db_name = "test"
+    restore_bot.restore_db_with_latest_backup(db_name, storage_path)
 
-    # restore a specific backup
-    backup_file1 = "/home/pliu/git/LearningSQL/SQL_practice_problems/data_base/northwind_ddl.sql"
-    backup_file2 = "/home/pliu/git/LearningSQL/SQL_practice_problems/data_base/northwind_data.sql"
-    restore_bot.restore_db_backup("test", backup_file1)
-    restore_bot.restore_db_backup("test", backup_file2)
+    # restore a specific backup with full path
+    # backup_file1 = "/home/pliu/git/LearningSQL/SQL_practice_problems/data_base/northwind_ddl.sql"
+    # backup_file2 = "/home/pliu/git/LearningSQL/SQL_practice_problems/data_base/northwind_data.sql"
+    # restore_bot.restore_db_backup("test", backup_file1)
+    # restore_bot.restore_db_backup("test", backup_file2)
 
 
 if __name__ == "__main__":
