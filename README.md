@@ -16,7 +16,7 @@ Part 1: Back up
 Part 2: Restore
 
 1. Get available backups
-2. Choose and Download prefered backups
+2. Choose and Download preferred backups
 3. Restore the database
 
 # Code Examples
@@ -76,8 +76,114 @@ s3.download_data("s3a://pengfei/me/2022-01-06_north_wind_pg_bck.sql", "/home/cod
 
 ```
 
-## DbRestoreBot
+## DbBackupBot
+
+Code example of using DbBackupBot to back up a database and save the backup on s3StorageEngine
 
 ```python
+def main():
+    # params to be configured in the job or cron job
+    user_name = "user-pengfei"
+    user_password = "changeMe"
+    host_name = "postgresql-124499"
+    port = "5432"
+    db_name = "test"
+    backup_storage_path = "s3://pengfei/tmp/sql_backup"
 
+    # create an instance of postgresDbManager
+    p_manager = PostgresDbManager(user_name, user_password, host_name=host_name, port=port)
+
+    # temp local path if you use remote storage
+    # get s3 creds
+    endpoint = "https://" + os.getenv("AWS_S3_ENDPOINT")
+    access_key = os.getenv("AWS_ACCESS_KEY_ID")
+    secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+    session_token = os.getenv("AWS_SESSION_TOKEN")
+    # build s3 client
+    s3 = S3StorageEngine(endpoint, access_key, secret_key, session_token)
+
+    # create an instance of DbBackupBot
+    backup_bot = DbBackupBot(s3, p_manager)
+
+    backup_bot.make_backup(db_name,backup_storage_path)
+
+
+if __name__ == "__main__":
+    main()
 ```
+
+Code example of using DbBackupBot to back up a database and save the backup on LocalStorageEngine
+```python
+local = LocalStorageEngine()
+    user_name = "pliu"
+    user_password = "pliu"
+    host_name = "127.0.0.1"
+    port="5432"
+
+    # create an instance of postgresDbManager
+    p_manager = PostgresDbManager(user_name, user_password, host_name=host_name, port=port)
+
+    # create an instance of DbBackupBot
+    backup_bot = DbBackupBot(local, p_manager)
+
+    backup_bot.make_backup("test","/tmp/sql_backup")
+```
+
+## DbRestoreBot
+Code example of using DbRestoreBot to download backup from s3StorageEngine and restore the database
+```python
+def main():
+    # create an instance of local storage
+    user_name = "user-pengfei"
+    user_password = "changeMe"
+    host_name = "postgresql-124499"
+    port="5432"
+    db_name = "test"
+    backup_storage_path = "s3://pengfei/tmp/sql_backup"
+
+
+    # create an instance of postgresDbManager
+    p_manager = PostgresDbManager(user_name, user_password, host_name=host_name, port=port)
+    
+
+    endpoint = "https://" + os.getenv("AWS_S3_ENDPOINT")
+    access_key = os.getenv("AWS_ACCESS_KEY_ID")
+    secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+    session_token = os.getenv("AWS_SESSION_TOKEN")
+    # build s3 client
+    s3 = S3StorageEngine(endpoint, access_key, secret_key, session_token)
+
+    # create an instance of DbRestoreBot
+    restore_bot = DbRestoreBot(s3, p_manager)
+
+    restore_bot.restore_db_with_latest_backup(db_name,backup_storage_path)
+
+    # restore a specific backup
+    # backup_file1 = "/home/pliu/git/LearningSQL/SQL_practice_problems/data_base/northwind_ddl.sql"
+    # backup_file2 = "/home/pliu/git/LearningSQL/SQL_practice_problems/data_base/northwind_data.sql"
+    # restore_bot.restore_db_backup("test", backup_file1)
+    # restore_bot.restore_db_backup("test", backup_file2)
+```
+
+Code example of using DbRestoreBot to restore the database from localStorageEngine
+
+```python
+# create an instance of local storage
+    local = LocalStorageEngine()
+    user_name = "pliu"
+    user_password = "pliu"
+    host_name = "127.0.0.1"
+
+    # create an instance of postgresDbManager
+    p_manager = PostgresDbManager(user_name, user_password, host_name=host_name, port="5432")
+
+    # create an instance of DbRestoreBot
+    restore_bot = DbRestoreBot(local, p_manager)
+
+    # restore latest backup
+    storage_path = "/tmp/sql_backup"
+    db_name = "test"
+    restore_bot.restore_db_with_latest_backup(db_name, storage_path)
+```
+
+    
