@@ -19,12 +19,14 @@ class DbManagerInterface(metaclass=abc.ABCMeta):
                 NotImplemented)
 
     @abc.abstractmethod
-    def backup_db(self, db_name: str, output_path: str, custom_format=False, creat_db=False) -> Optional[str]:
+    def backup_db(self, db_name: str, output_dir: str, backup_file_name: str, custom_format=False, creat_db=False) \
+            -> Optional[str]:
         """
         backup a database and output the dump file to local storage
 
         :param db_name: The name of the database that needs to be backed up
-        :param output_path: the path of the output backup dump file
+        :param output_dir: the path of the output backup dump file
+        :param backup_file_name: The name of the backup file
         :param custom_format: default value is False, if set to true, the backup dump file uses postgres custom dump
                       format which is not plain text. This format can be only imported by using pg_restore
         :param creat_db: Default value is False, if set to true, the option -C/--create will be added to the dump
