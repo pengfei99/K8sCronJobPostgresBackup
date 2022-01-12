@@ -105,7 +105,7 @@ def main():
     # create an instance of DbBackupBot
     backup_bot = DbBackupBot(s3, p_manager)
 
-    backup_bot.make_backup(db_name,backup_storage_path)
+    backup_bot.make_auto_backup(db_name,backup_storage_path)
 
 
 if __name__ == "__main__":

@@ -164,6 +164,17 @@ To test the db backup, we will drop the db this time
 drop database school;
 
 ```
+
+Note, if you can't drop a database because some other users are using it. You can use below command to revoke their
+connections
+
+```postgresql
+REVOKE CONNECT ON DATABASE TARGET_DB FROM public;
+
+SELECT pg_terminate_backend(pg_stat_activity.pid)
+FROM pg_stat_activity
+WHERE pg_stat_activity.datname = 'TARGET_DB';
+```
 To restore it, we need to create an empty db first, then apply the backup on the empty db
 
 Step 1. Create db
