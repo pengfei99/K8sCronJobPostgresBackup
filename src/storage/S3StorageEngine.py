@@ -11,7 +11,6 @@ from botocore.exceptions import ClientError
 from src.storage.ProgressPercentage import ProgressPercentage
 from src.storage.StorageEngineInterface import StorageEngineInterface
 
-
 log = logging.getLogger(__name__)
 
 
@@ -35,13 +34,13 @@ class S3StorageEngine(StorageEngineInterface):
         """
 
         :param source_path: The local data path include parent dir and file name
-        :param destination_path: The s3 remote path that includes bucket_name and bucket_key(parent directory)
-                not the file name
+        :param destination_path: is the full s3 remote path that includes bucket_name and s3 object name. e.g.
+                s3://pengfei/tmp/tmp_bkp.sql
         :return: return true if upload complete, return false if failed
         """
         try:
-            bucket_name, bucket_key = self.parse_path(destination_path)
-            return self.upload_file_to_s3(bucket_name, bucket_key, source_path, delete_origin=True)
+            bucket_name, object_name = self.parse_path(destination_path)
+            return self.upload_file_to_s3(bucket_name, object_name, source_path, delete_origin=True)
         except ValueError as e:
             log.error(e)
             return False
@@ -107,9 +106,32 @@ class S3StorageEngine(StorageEngineInterface):
         # s3_object.put(Body=data)
         self.s3_client.put_object(Bucket=bucket_name, Key=bucket_key, Body=data)
 
-    def upload_file_to_s3(self, bucket_name: str, bucket_key: str, source_file_path, delete_origin=False) -> bool:
+    def upload_file_to_s3(self, bucket_name: str, object_name: str, source_file_path, delete_origin=False) -> bool:
         """
-        Upload a file to an AWS S3 bucket.
+        Upload a file to an AWS S3 bucket. It will extract the origin file name from the source path, and concat it
+        with the given bucket to form the final s3 object name.
+
+        :param bucket_name: The name of the bucket that you want to write
+        :param object_name: The full path of the data relative to the bucket name.
+        :param source_file_path: indicates the source file path, all files under the path will be uploaded to s3
+        :param delete_origin: default value is False. If set to True, after upload, the source file will be deleted.
+        :return: None
+        """
+        try:
+            self.s3_client.upload_file(source_file_path, bucket_name, object_name,
+                                       Callback=ProgressPercentage(source_file_path))
+        except ClientError as e:
+            log.error(e)
+            return False
+        if delete_origin:
+            os.remove(source_file_path)
+        return True
+
+    def upload_file_to_s3_with_origin_file_name(self, bucket_name: str, bucket_key: str, source_file_path,
+                                                delete_origin=False) -> bool:
+        """
+        Upload a file to an AWS S3 bucket. It will extract the origin file name from the source path, and concat it
+        with the given bucket to form the final s3 object name.
 
         :param bucket_name: The name of the bucket that you want to write
         :param bucket_key: The destination path of the data relative to the bucket name. It's the parent dir of
