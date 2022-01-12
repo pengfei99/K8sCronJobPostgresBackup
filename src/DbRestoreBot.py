@@ -67,6 +67,14 @@ class DbRestoreBot:
             return self.db_manager.restore_db(db_name, backup_file_path, backup_format="sql")
 
     def restore_db_with_latest_backup(self, db_name, backup_root_path: str):
+        """
+        This method gets the latest backup of the given database name from the given root_path. If it finds one,
+        it downloads the backup to a local temporal path. Then call the restore_db_backup
+
+        :param db_name:
+        :param backup_root_path:
+        :return:
+        """
         # get the path of the latest backup
         latest_backup = self.get_latest_backup_name(backup_root_path, db_name)
         # start the restore process if we found a backup file
