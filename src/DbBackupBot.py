@@ -4,7 +4,7 @@ from typing import Optional
 
 from src.db.DbManagerInterface import DbManagerInterface
 from src.db.PostgresDbManager import PostgresDbManager
-import os
+from util import get_date_format
 
 from src.storage.LocalStorageEngine import LocalStorageEngine
 from src.storage.S3StorageEngine import S3StorageEngine
@@ -24,7 +24,7 @@ class DbBackupBot:
         self.db_manager = db_manager
 
     def make_auto_backup(self, db_name: str, backup_file_parent_dir: str, tmp_dir='/tmp') -> Optional[str]:
-        current_date = str(datetime.date(datetime.now()))
+        current_date = datetime.now().strftime(get_date_format())
         backup_file_name = f"{current_date}_{db_name}_pg_bck.sql"
         return self.make_backup_with_custom_file_name(db_name, backup_file_parent_dir, backup_file_name, tmp_dir)
 

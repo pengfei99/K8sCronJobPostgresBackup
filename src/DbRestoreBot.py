@@ -7,6 +7,7 @@ from src.db.DbManagerInterface import DbManagerInterface
 from src.db.PostgresDbManager import PostgresDbManager
 from src.storage.StorageEngineInterface import StorageEngineInterface
 from src.storage.LocalStorageEngine import LocalStorageEngine
+from util import get_date_format
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
@@ -45,7 +46,7 @@ class DbRestoreBot:
             min_time = datetime.timedelta(days=30)
             for raw_file_name in backup_list:
                 file_name = self.storage_engine.get_short_file_name(raw_file_name)
-                time_stamp = datetime.datetime.strptime(file_name.split("_")[0], '%Y-%M-%d')
+                time_stamp = datetime.datetime.strptime(file_name.split("_")[0], get_date_format())
                 # arithmetic operations on datetime will return a timedelta type
                 if min_time > current_date - time_stamp:
                     min_time = current_date - time_stamp
