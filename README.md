@@ -200,4 +200,7 @@ python src/main.py --action list_dbs --db_login user-pengfei --db_pwd changeMe -
  
 # auto restore
 python src/main.py --action auto_restore --db_login user-pengfei --db_pwd changeMe --db_host postgresql-124499 --backup_dir s3://pengfei/tmp/sql_backup --target_db test 
+
+# populate
+python src/main.py --action populate --db_login user-pengfei --db_pwd changeMe --db_host postgresql-124499 --backup_file s3://pengfei/tmp/sql_backup/2022-01-12_test_pg_bck.sql --target_db test1
 ```
