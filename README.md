@@ -186,4 +186,18 @@ Code example of using DbRestoreBot to restore the database from localStorageEngi
     restore_bot.restore_db_with_latest_backup(db_name, storage_path)
 ```
 
-    
+### main
+
+```shell
+# list existing backup
+python src/main.py --action list_backups --backup_dir s3://pengfei/tmp/sql_backup
+
+# list existing database
+python src/main.py --action list_dbs --db_login user-pengfei --db_pwd changeMe --db_host postgresql-124499 --db_port 5432
+
+# auto backup
+ python src/main.py --action auto_backup --db_login user-pengfei --db_pwd changeMe --db_host postgresql-124499 --backup_dir s3://pengfei/tmp/sql_backup --target_db test
+ 
+# auto restore
+python src/main.py --action auto_restore --db_login user-pengfei --db_pwd changeMe --db_host postgresql-124499 --backup_dir s3://pengfei/tmp/sql_backup --target_db test 
+```
