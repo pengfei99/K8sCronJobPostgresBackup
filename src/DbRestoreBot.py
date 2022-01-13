@@ -64,7 +64,7 @@ class DbRestoreBot:
         else:
             return None
 
-    def restore_db_backup(self, db_name: str, backup_file_path: str):
+    def restore_db_backup(self, db_name: str, backup_file_path: str) -> bool:
         # create db if the given db_name does not exist yet
         if not self.db_manager.has_db(db_name):
             self.db_manager.create_db(db_name)
@@ -76,7 +76,7 @@ class DbRestoreBot:
             log.info("restore_db_backup with sql plain text format")
             return self.db_manager.restore_db(db_name, backup_file_path, backup_format="sql")
 
-    def restore_db_with_latest_backup(self, db_name, backup_root_path: str):
+    def restore_db_with_latest_backup(self, db_name, backup_root_path: str) -> bool:
         """
         This method gets the latest backup of the given database name from the given root_path. If it finds one,
         it downloads the backup to a local temporal path. Then call the restore_db_backup
@@ -94,11 +94,37 @@ class DbRestoreBot:
             local_path = f"/tmp/latest_{db_name}_backup.sql"
             if self.storage_engine.download_data(latest_backup, local_path):
                 # step2: restore db with the backup file
-                self.restore_db_backup(db_name, local_path)
+                return self.restore_db_backup(db_name, local_path)
             else:
                 log.error("Fail to download the backup file")
+                return False
         else:
             log.exception(f"There is no backup file for the given db name {db_name} in directory {backup_root_path}")
+            return False
+
+    def populate_db_with_sql_dump(self, db_name, backup_file_path: str) -> bool:
+        """
+        This method gets the latest backup of the given database name from the given root_path. If it finds one,
+        it downloads the backup to a local temporal path. Then call the restore_db_backup
+
+        :param backup_file_path:
+        :param db_name:
+        :return:
+        """
+
+        # step1 download data from remote storage to local
+        local_path = f"/tmp/{db_name}_backup.sql"
+        if self.storage_engine.download_data(backup_file_path, local_path):
+            # step2: restore db with the backup file
+            if self.restore_db_backup(db_name, local_path):
+                log.info(f"Populate the database {db_name} with file {backup_file_path} is complete")
+                return True
+            else:
+                log.error(f"Fail to populate the database {db_name} with file {backup_file_path}")
+                return False
+        else:
+            log.error(f"Fail to download the backup file {backup_file_path}")
+            return False
 
 
 def main():
