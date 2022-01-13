@@ -1,15 +1,13 @@
 #
-FROM python:3.8
+FROM python:3.8-bullseye
 
 # set api as the current work dir
 WORKDIR /app
 
 # install postgresql client
-RUN apt-get update \
-    && apt-get -y upgrade \
-    && apt-get -y install postgresql-client \
+RUN apt-get update && apt-get install -y postgresql-client
 
-# copy the requirements list
+# copy the requirements lists
 COPY ./requirements.txt /app/requirements.txt
 
 # install all the requirements
