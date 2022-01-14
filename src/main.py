@@ -101,8 +101,10 @@ def main():
             # create an instance of DbBackupBot
             backup_bot = DbBackupBot(s3, db_manager)
             # do the auto backup
-            backup_bot.make_auto_backup(db_name, backup_storage_path)
-            log.info("Backup complete")
+            if backup_bot.make_auto_backup(db_name, backup_storage_path):
+                log.info("Backup complete")
+            else:
+                log.error("Backup failed")
         else:
             log.error(f"Missing argument. Unable to connect to the database "
                       f"With the given argument {user_name}, {user_password}, {host_name}, {port}")
@@ -115,8 +117,10 @@ def main():
             # create an instance of DbRestoreBot
             restore_bot = DbRestoreBot(s3, db_manager)
             # do the auto restore
-            restore_bot.restore_db_with_latest_backup(db_name, backup_storage_path)
-            log.info("Restore complete")
+            if restore_bot.restore_db_with_latest_backup(db_name, backup_storage_path):
+                log.info("Restore complete")
+            else:
+                log.error("Restore failed")
         else:
             log.error(f"Missing argument. Unable to connect to the database "
                       f"With the given argument {user_name}, {user_password}, {host_name}, {port}")
@@ -129,8 +133,10 @@ def main():
             # create an instance of DbRestoreBot
             restore_bot = DbRestoreBot(s3, db_manager)
             # do the auto restore
-            restore_bot.populate_db_with_sql_dump(db_name, backup_file_name)
-            log.info("Populate database complete")
+            if restore_bot.populate_db_with_sql_dump(db_name, backup_file_name):
+                log.info("Populate database complete")
+            else:
+                log.error("Populate database failed")
         else:
             log.error(f"Missing argument. Unable to connect to the database "
                       f"With the given argument {user_name}, {user_password}, {host_name}, {port}")
