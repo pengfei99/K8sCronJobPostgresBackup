@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 COPY ./src /app/src
 
 # set up python path for the added source
-ENV PYTHONPATH "${PYTHONPATH}:/app/src"
+ENV PYTHONPATH "${PYTHONPATH}:/app"
 
 # call the function
-CMD ["python"]
+CMD ["sh"]
