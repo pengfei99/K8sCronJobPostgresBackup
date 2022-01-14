@@ -16,6 +16,8 @@ RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 # copy the main code of backup
 COPY ./src /app/src
 
+# set up python path for the added source
+ENV PYTHONPATH "${PYTHONPATH}:/app"
 
 # call the function
 CMD ["python"]
