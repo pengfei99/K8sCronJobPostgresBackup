@@ -20,4 +20,4 @@ COPY ./src /app/src
 ENV PYTHONPATH "${PYTHONPATH}:/app"
 
 # call the function
-CMD ["sh"]
+CMD ["python"]
