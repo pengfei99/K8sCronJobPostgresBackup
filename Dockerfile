@@ -18,4 +18,4 @@ COPY ./src /app/src
 
 
 # call the function
-CMD ["python", "src/main.py", "--action", "list_backups", "--backup_dir", "s3://pengfei/tmp/sql_backup"]
+CMD ["python"]
