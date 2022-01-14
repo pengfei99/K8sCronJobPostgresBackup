@@ -4,7 +4,7 @@ def get_date_format():
     in the file name. The returned string is the format for timestamp
     :return: a string which is the format for timestamp in the backup file
     """
-    return '%Y_%m_%d_%H_%M_%S'
+    return '%Y-%m-%d-%H-%M-%S'
 
 
 def get_date_limit_of_backup_file():
