@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cron-auto-backup-db
+spec:
+  # the cronjob will be activated at every night at midnight
+  schedule: "0 0 * * *"
+  concurrencyPolicy: Forbid
+  suspend: false
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup_bot
+            image: liupengfei99/db_backup_restore:main
+            imagePullPolicy: IfNotPresent
+            env:
+              - name: DB_LOGIN
+                value: "user-pengfei"
+              - name: DB_PWD
+                value: "changeMe"
+              - name: DB_HOST
+                value: "postgresql-124499"
+              - name: DB_PORT
+                value: "5432"
+              - name: BACKUP_DIR
+                value: "s3://pengfei/tmp/sql_backup"
+              - name: TARGET_DB
+                value: "test"
+            command: [ "python", "src/main.py", "--action", "auto_backup",
+                         "--db_login", "$DB_LOGIN", "--db_pwd", "$DB_PWD", "--db_host", "$DB_HOST", "--db_port", "$DB_PORT",
+                         "--backup_dir", "$BACKUP_DIR", "--target_db", "$TARGET_DB" ]
+          restartPolicy: OnFailure

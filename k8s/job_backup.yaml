@@ -1,14 +1,14 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: auto-restore-db
+  name: auto-backup-db
   labels:
     app: db-backup-restore
 spec:
   template:
     spec:
       containers:
-        - name: restore_bot
+        - name: backup_bot
           image: liupengfei99/db_backup_restore:main
           env:
             - name: DB_LOGIN
@@ -23,8 +23,7 @@ spec:
               value: "s3://pengfei/tmp/sql_backup"
             - name: TARGET_DB
               value: "test"
-
-          command: [ "python", "src/main.py", "--action", "auto_restore",
+          command: [ "python", "src/main.py", "--action", "auto_backup",
                      "--db_login", "$DB_LOGIN", "--db_pwd", "$DB_PWD", "--db_host", "$DB_HOST", "--db_port", "$DB_PORT",
                      "--backup_dir", "$BACKUP_DIR", "--target_db", "$TARGET_DB" ]
       restartPolicy: Never
