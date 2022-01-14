@@ -14,7 +14,7 @@ spec:
       template:
         spec:
           containers:
-          - name: backup_bot
+          - name: backup-bot
             image: liupengfei99/db_backup_restore:main
             imagePullPolicy: IfNotPresent
             env:
@@ -26,11 +26,20 @@ spec:
                 value: "postgresql-124499"
               - name: DB_PORT
                 value: "5432"
+              - name: AWS_S3_ENDPOINT
+                value: "minio.lab.sspcloud.fr"
+              - name: AWS_ACCESS_KEY_ID
+                value: "changeMe"
+              - name: AWS_SECRET_ACCESS_KEY
+                value: "changeMe"
+                # The token is optional based on your s3 creds type, you can leave it empty
+              - name: AWS_SESSION_TOKEN
+                value: ""
               - name: BACKUP_DIR
                 value: "s3://pengfei/tmp/sql_backup"
               - name: TARGET_DB
                 value: "test"
-            command: [ "python", "src/main.py", "--action", "auto_backup",
-                         "--db_login", "$DB_LOGIN", "--db_pwd", "$DB_PWD", "--db_host", "$DB_HOST", "--db_port", "$DB_PORT",
-                         "--backup_dir", "$BACKUP_DIR", "--target_db", "$TARGET_DB" ]
+            command: [sh, -c]
+            args: ["python src/main.py --action auto_backup --db_login $DB_LOGIN --db_pwd $DB_PWD --db_host $DB_HOST --db_port $DB_PORT
+                --backup_dir $BACKUP_DIR --target_db $TARGET_DB"]
           restartPolicy: OnFailure

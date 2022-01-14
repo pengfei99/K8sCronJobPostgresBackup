@@ -8,7 +8,7 @@ spec:
   template:
     spec:
       containers:
-        - name: populate_bot
+        - name: populate-bot
           image: liupengfei99/db_backup_restore:main
           env:
             - name: DB_LOGIN
@@ -19,13 +19,22 @@ spec:
               value: "postgresql-124499"
             - name: DB_PORT
               value: "5432"
+            - name: AWS_S3_ENDPOINT
+              value: "minio.lab.sspcloud.fr"
+            - name: AWS_ACCESS_KEY_ID
+              value: "changeMe"
+            - name: AWS_SECRET_ACCESS_KEY
+              value: "changeMe"
+            # The token is optional based on your s3 creds type, you can leave it empty
+            - name: AWS_SESSION_TOKEN
+              value: ""
             - name: BACKUP_FILE
               value: "s3://pengfei/tmp/sql_backup/2022-01-12_test_pg_bck.sql"
             - name: TARGET_DB
-              value: "test"
-          command: [ "python", "src/main.py", "--action", "populate",
-                     "--db_login", "$DB_LOGIN", "--db_pwd", "$DB_PWD", "--db_host", "$DB_HOST", "--db_port", "$DB_PORT",
-                     "--backup_file", "$BACKUP_FILE", "--target_db", "$TARGET_DB" ]
+              value: "pengfei"
+          command: [sh, -c]
+          args: ["python src/main.py --action populate --db_login $DB_LOGIN --db_pwd $DB_PWD --db_host $DB_HOST --db_port $DB_PORT
+                --backup_file $BACKUP_FILE --target_db $TARGET_DB"]
       restartPolicy: Never
   # A job's spec are immutable, we can't change them after job creation. We need to delete old job, and submit new job.
   # completions default value is 1, it means if 1 pod complete and return 0. The job is considered finished succesfully.
