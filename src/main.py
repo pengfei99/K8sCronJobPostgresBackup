@@ -1,12 +1,11 @@
 import argparse
-import datetime
 import logging
 import os
 
-from src.DbBackupBot import DbBackupBot
-from src.DbRestoreBot import DbRestoreBot
 from src.db.PostgresDbManager import PostgresDbManager
 from src.storage.S3StorageEngine import S3StorageEngine
+from src.storage.LocalStorageEngine import LocalStorageEngine
+from src.DbBackupRestoreBot import DbBackupRestoreBot
 
 
 def main():
@@ -21,10 +20,27 @@ def main():
     # choices=[] will check the input with items in the list. If no match, error will be raised
     # metavar is the surname of the variable next to the option, for explanation purpose
     # help defines the comments which will be printed after option --help
+    args_parser.add_argument("--db_type",
+                             metavar="db_type",
+                             choices=['postgres', 'mysql', 'oracle'],
+                             required=True,
+                             help="The database type that you want to connect to. Possible values: "
+                                  "'postgres', 'mysql', 'oracle'"
+                             )
+    args_parser.add_argument("--storage_type",
+                             metavar="storage_type",
+                             choices=['local', 's3', 'hdfs'],
+                             required=True,
+                             help="The storage type that you want to connect to. Possible values: "
+                                  "'local', 's3', 'hdfs'"
+                             )
     args_parser.add_argument("--action",
                              metavar="action",
                              choices=['list_backups', 'list_dbs', 'auto_restore', 'auto_backup', 'populate'],
-                             required=True)
+                             required=True,
+                             help="The action that CLI provides. Possible values: "
+                                  "'list_backups', 'list_dbs', 'auto_restore', 'auto_backup', 'populate'"
+                             )
     args_parser.add_argument("--backup_dir",
                              metavar="backup_parent_dir",
                              default=None,
@@ -55,18 +71,33 @@ def main():
                              help="Name of the database that need to be restored or backup")
 
     args = args_parser.parse_args()
+    db_manager = None
+    storage_engine = None
+    # build db_manager with the input db type and params
+    if args.db_type == "postgres":
+        user_name = args.db_login
+        user_password = args.db_pwd
+        host_name = args.db_host
+        port = args.db_port
+        db_manager = PostgresDbManager(user_name, user_password, host_name=host_name, port=port)
+    else:
+        log.error(
+            f"We don't support the server type {args.db_type} for now, please enter a database type that we support")
+        exit(1)
 
-    # setup db params
-    user_name = args.db_login
-    user_password = args.db_pwd
-    host_name = args.db_host
-    port = args.db_port
-
-    # setup s3 params
-    endpoint = "https://" + os.getenv("AWS_S3_ENDPOINT")
-    access_key = os.getenv("AWS_ACCESS_KEY_ID")
-    secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-    session_token = os.getenv("AWS_SESSION_TOKEN")
+    # build storage engine with the input storage type and params
+    if args.storage_type == "local":
+        storage_engine = LocalStorageEngine()
+    elif args.storage_type == "s3":
+        endpoint = "https://" + os.getenv("AWS_S3_ENDPOINT")
+        access_key = os.getenv("AWS_ACCESS_KEY_ID")
+        secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+        session_token = os.getenv("AWS_SESSION_TOKEN")
+        storage_engine = S3StorageEngine(endpoint, access_key, secret_key, session_token)
+    else:
+        log.error(f"We don't support the storage type {args.storage_type} for now, please enter a "
+                  f"storage type that we support")
+        exit(1)
 
     # setup db backup restore params
     db_name = args.target_db
@@ -74,72 +105,69 @@ def main():
 
     # for populate a database, you need to use option --backup_file to give a full file name of the sql dump
     backup_file_name = args.backup_file
+
     # list task
     if args.action == "list_backups":
-        # build s3 client
-        s3 = S3StorageEngine(endpoint, access_key, secret_key, session_token)
         if backup_storage_path:
-            backup_files = s3.list_dir(backup_storage_path)
+            backup_files = storage_engine.list_dir(backup_storage_path)
             log.info(f"Find following backup: {backup_files}")
+        else:
+            log.error("Missing argument backup dir")
+            exit(1)
 
     # list databases task
     elif args.action == "list_dbs":
-        if user_name and user_password and host_name:
-            db_manager = PostgresDbManager(user_name, user_password, host_name=host_name, port=port)
+        if db_manager:
             dbs = db_manager.get_db_list()
-            log.info(f"Find belows databases: {dbs}")
+            log.info(f"Find below databases: {dbs}")
         else:
-            log.error(f"Missing argument. Unable to connect to the database "
-                      f"With the given argument {user_name}, {user_password}, {host_name}, {port}")
+            log.error(f"Missing argument. Unable to connect to the database")
+            exit(1)
 
     # auto_backup task
     elif args.action == "auto_backup":
-        # build s3 client
-        s3 = S3StorageEngine(endpoint, access_key, secret_key, session_token)
-        if user_name and user_password and host_name and db_name and backup_storage_path:
-            db_manager = PostgresDbManager(user_name, user_password, host_name=host_name, port=port)
+        if db_manager and storage_engine and backup_storage_path:
             # create an instance of DbBackupBot
-            backup_bot = DbBackupBot(s3, db_manager)
+            backup_bot = DbBackupRestoreBot(storage_engine, db_manager)
             # do the auto backup
             if backup_bot.make_auto_backup(db_name, backup_storage_path):
                 log.info("Backup complete")
             else:
                 log.error("Backup failed")
+                exit(1)
         else:
-            log.error(f"Missing argument. Unable to connect to the database "
-                      f"With the given argument {user_name}, {user_password}, {host_name}, {port}")
+            log.error(f"Missing argument. Unable to backup the database ")
+            exit(1)
 
     # auto_restore task
     elif args.action == "auto_restore":
-        s3 = S3StorageEngine(endpoint, access_key, secret_key, session_token)
-        if user_name and user_password and host_name and db_name and backup_storage_path:
-            db_manager = PostgresDbManager(user_name, user_password, host_name=host_name, port=port)
-            # create an instance of DbRestoreBot
-            restore_bot = DbRestoreBot(s3, db_manager)
+        if db_manager and storage_engine and backup_storage_path:
+            # create an instance of DbBackupRestoreBot
+            restore_bot = DbBackupRestoreBot(storage_engine, db_manager)
             # do the auto restore
             if restore_bot.restore_db_with_latest_backup(db_name, backup_storage_path):
                 log.info("Restore complete")
             else:
                 log.error("Restore failed")
+                exit(1)
         else:
-            log.error(f"Missing argument. Unable to connect to the database "
-                      f"With the given argument {user_name}, {user_password}, {host_name}, {port}")
+            log.error(f"Missing argument. Unable to restore the database")
+            exit(1)
 
     # populate task
     elif args.action == "populate":
-        s3 = S3StorageEngine(endpoint, access_key, secret_key, session_token)
-        if user_name and user_password and host_name and db_name and backup_file_name:
-            db_manager = PostgresDbManager(user_name, user_password, host_name=host_name, port=port)
-            # create an instance of DbRestoreBot
-            restore_bot = DbRestoreBot(s3, db_manager)
+        if db_manager and storage_engine and db_name and backup_file_name:
+            # create an instance of DbBackupRestoreBot
+            restore_bot = DbBackupRestoreBot(storage_engine, db_manager)
             # do the auto restore
             if restore_bot.populate_db_with_sql_dump(db_name, backup_file_name):
                 log.info("Populate database complete")
             else:
                 log.error("Populate database failed")
+                exit(1)
         else:
-            log.error(f"Missing argument. Unable to connect to the database "
-                      f"With the given argument {user_name}, {user_password}, {host_name}, {port}")
+            log.error(f"Missing argument. Unable to connect to the database")
+            exit(1)
 
 
 if __name__ == '__main__':
