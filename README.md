@@ -28,6 +28,54 @@ There are different ways to use this project.
 
 ### Use this project as a python package
 
+```shell
+# install this project as a pypi package
+pip install dbsavior
+```
+
+```python3
+import os
+from dbsavior.db.PostgresDbManager import PostgresDbManager
+from dbsavior.storage.S3StorageEngine import S3StorageEngine
+from dbsavior.storage.LocalStorageEngine import LocalStorageEngine
+from dbsavior.DbBackupRestoreBot import DbBackupRestoreBot
+
+
+def main():
+    # params to be configured in the job or cron job
+    user_name:str = "user-pengfei"
+    user_password:str = "changeMe"
+    host_name:str = "postgresql-124499"
+    port:str = "5432"
+    db_name:str = "test"
+    backup_storage_path:str = "s3://pengfei/tmp/sql_backup"
+
+    # create an instance of postgresDbManager
+    p_manager = PostgresDbManager(user_name, user_password, host_name=host_name, port=port)
+
+    # temp local path if you use remote storage
+    # get s3 creds
+    endpoint = "https://" + os.getenv("AWS_S3_ENDPOINT")
+    access_key = os.getenv("AWS_ACCESS_KEY_ID")
+    secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+    session_token = os.getenv("AWS_SESSION_TOKEN")
+    # build s3 client
+    s3 = S3StorageEngine(endpoint, access_key, secret_key, session_token)
+
+    # create an instance of DbBackupBot
+    backup_restore_bot = DbBackupRestoreBot(s3, p_manager)
+    
+    # do an auto backup
+    backup_restore_bot.make_auto_backup(db_name,backup_storage_path)
+    
+    # restore the database by using the latest backup
+    backup_restore_bot.restore_db_with_latest_backup(db_name, backup_storage_path)
+
+
+if __name__ == "__main__":
+    main()
+```
+
 ### Use this project as a python Command Line Interface
 
 Note, if you use remote storage such as s3 (or minio), you need to set up your s3 creds correctly in your env variables.
@@ -39,22 +87,22 @@ git clone https://github.com/pengfei99/K8sCronJobPostgresBackup.git
 cd K8sCronJobPostgresBackup
 
 # show the command line options and comments
-python src/main.py -h
+python dbsavior/main.py -h
 
 # list existing backup
-python src/main.py --db_type postgres --storage_type s3 --action list_backups --backup_dir s3://path/to/sql_backup
+python dbsavior/main.py --db_type postgres --storage_type s3 --action list_backups --backup_dir s3://path/to/sql_backup
 
 # list existing database
-python src/main.py --db_type postgres --storage_type s3 --action list_dbs --db_login user-pengfei --db_pwd changeMe --db_host 127.0.0.1 --db_port 5432
+python dbsavior/main.py --db_type postgres --storage_type s3 --action list_dbs --db_login user-pengfei --db_pwd changeMe --db_host 127.0.0.1 --db_port 5432
 
 # auto backup
-python src/main.py --db_type postgres --storage_type s3 --action auto_backup --db_login user-pengfei --db_pwd changeMe --db_host 127.0.0.1 --backup_dir s3://path/to/sql_backup --target_db test
+python dbsavior/main.py --db_type postgres --storage_type s3 --action auto_backup --db_login user-pengfei --db_pwd changeMe --db_host 127.0.0.1 --backup_dir s3://path/to/sql_backup --target_db test
  
 # auto restore 
-python src/main.py --db_type postgres --storage_type s3 --action auto_restore --db_login user-pengfei --db_pwd changeMe --db_host 127.0.0.1 --backup_dir s3://path/to/sql_backup --target_db test 
+python dbsavior/main.py --db_type postgres --storage_type s3 --action auto_restore --db_login user-pengfei --db_pwd changeMe --db_host 127.0.0.1 --backup_dir s3://path/to/sql_backup --target_db test 
 
 # populate a database with a sql dump
-python src/main.py --db_type postgres --storage_type s3 --action populate --db_login user-pengfei --db_pwd changeMe --db_host 127.0.0.1 --backup_file s3://path/to/sql_backup/2022-01-12_test_pg_bck.sql --target_db test
+python dbsavior/main.py --db_type postgres --storage_type s3 --action populate --db_login user-pengfei --db_pwd changeMe --db_host 127.0.0.1 --backup_file s3://path/to/sql_backup/2022-01-12_test_pg_bck.sql --target_db test
 
 ```
 
