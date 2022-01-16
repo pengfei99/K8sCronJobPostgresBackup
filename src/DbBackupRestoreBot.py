@@ -97,8 +97,11 @@ class DbBackupRestoreBot:
 
     def restore_db_backup(self, db_name: str, backup_file_path: str) -> bool:
         # create db if the given db_name does not exist yet
-        if not self.db_manager.has_db(db_name):
+        if self.db_manager.has_db(db_name):
+            log.info(f"There is already a database with name {db_name}, you may have conflict")
+        else:
             self.db_manager.create_db(db_name)
+            log.info(f"Creating database {db_name}")
         # in our case, we name the postgres custom format with extension .pgdump; the plain text sql format with .sql
         if backup_file_path.endswith(".pgdump"):
             log.info("restore_db_backup with custom format")
@@ -156,33 +159,3 @@ class DbBackupRestoreBot:
         else:
             log.error(f"Fail to download the backup file {backup_file_path}")
             return False
-
-
-def main():
-    # create an instance of local storage
-    local = LocalStorageEngine()
-    user_name = "pliu"
-    user_password = "changeMe"
-    host_name = "127.0.0.1"
-    port = "5432"
-
-    # create an instance of postgresDbManager
-    p_manager = PostgresDbManager(user_name, user_password, host_name=host_name, port=port)
-
-    # create an instance of DbBackupBot
-    backup_bot = DbBackupRestoreBot(local, p_manager)
-
-    backup_bot.make_auto_backup("test", "/tmp/sql_backup")
-
-    # temp local path if you use remote storage
-    # get s3 creds
-    # endpoint = "https://" + os.getenv("AWS_S3_ENDPOINT")
-    # access_key = os.getenv("AWS_ACCESS_KEY_ID")
-    # secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-    # session_token = os.getenv("AWS_SESSION_TOKEN")
-    # build s3 client
-    # s3 = S3StorageEngine(endpoint, access_key, secret_key, session_token)
-
-
-if __name__ == "__main__":
-    main()
