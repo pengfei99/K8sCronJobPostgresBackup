@@ -1,6 +1,6 @@
 import pytest
 
-from src.storage.S3StorageEngine import S3StorageEngine
+from dbsavior.storage.S3StorageEngine import S3StorageEngine
 
 
 # note the test file

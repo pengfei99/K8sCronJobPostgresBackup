@@ -1,8 +1,26 @@
 [tool.poetry]
-name = "k8scronjobpostgresbackup"
+name="dbsavior"
 version = "0.1.0"
-description = ""
+description="This backup restore bot can backup/restore a database and upload/download the backup file to/from a remote storage engine"
 authors = ["Liu Pengfei <liu.pengfei@hotmail.fr>"]
+
+# New attributes
+license = "APACHE V2"
+readme = "README.md"
+homepage = "https://github.com/pengfei99/K8sCronJobPostgresBackup"
+repository = "https://github.com/pengfei99/K8sCronJobPostgresBackup"
+keywords = ["database", "s3", "backup","restore"]
+classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: Apache Software License",
+        "Operating System :: OS Independent",
+    ]
+include = [
+    "LICENSE",
+]
+
+
+
 
 [tool.poetry.dependencies]
 python = "^3.8"
