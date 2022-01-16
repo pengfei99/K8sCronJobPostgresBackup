@@ -33,7 +33,8 @@ spec:
             - name: TARGET_DB
               value: "pengfei"
           command: [sh, -c]
-          args: ["python src/main.py --action populate --db_login $DB_LOGIN --db_pwd $DB_PWD --db_host $DB_HOST --db_port $DB_PORT
+          args: ["python src/main.py --db_type postgres --storage_type s3 --action populate --db_login $DB_LOGIN 
+                --db_pwd $DB_PWD --db_host $DB_HOST --db_port $DB_PORT
                 --backup_file $BACKUP_FILE --target_db $TARGET_DB"]
       restartPolicy: Never
   # A job's spec are immutable, we can't change them after job creation. We need to delete old job, and submit new job.

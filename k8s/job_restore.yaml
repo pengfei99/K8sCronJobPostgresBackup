@@ -34,8 +34,9 @@ spec:
             - name: TARGET_DB
               value: "test"
           command: [sh, -c]
-          args: ["python src/main.py --action auto_restore --db_login $DB_LOGIN --db_pwd $DB_PWD --db_host $DB_HOST --db_port $DB_PORT
-                --backup_dir $BACKUP_DIR --target_db $TARGET_DB"]
+          args: ["python src/main.py --db_type postgres --storage_type s3 --action auto_restore --db_login $DB_LOGIN 
+                  --db_pwd $DB_PWD --db_host $DB_HOST --db_port $DB_PORT
+                  --backup_dir $BACKUP_DIR --target_db $TARGET_DB"]
       restartPolicy: Never
   # A job's spec are immutable, we can't change them after job creation. We need to delete old job, and submit new job.
   # completions default value is 1, it means if 1 pod complete and return 0. The job is considered finished succesfully.
