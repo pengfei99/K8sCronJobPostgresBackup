@@ -14,7 +14,7 @@ COPY ./requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
 # copy the main code of backup
-COPY ./src /app/src
+COPY dbsavior /app/dbsavior
 
 # set up python path for the added source
 ENV PYTHONPATH "${PYTHONPATH}:/app"

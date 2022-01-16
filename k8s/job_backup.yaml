@@ -34,7 +34,7 @@ spec:
             - name: TARGET_DB
               value: "changeMe" # the database name that you want to back up, example: north_wind
           command: [sh, -c]
-          args: ["python src/main.py --db_type postgres --storage_type s3 --action auto_backup --db_login $DB_LOGIN 
+          args: ["python dbsavior/main.py --db_type postgres --storage_type s3 --action auto_backup --db_login $DB_LOGIN 
                 --db_pwd $DB_PWD --db_host $DB_HOST --db_port $DB_PORT
                 --backup_dir $BACKUP_DIR --target_db $TARGET_DB"]
       restartPolicy: Never

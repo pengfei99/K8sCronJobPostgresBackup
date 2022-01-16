@@ -2,10 +2,10 @@ import argparse
 import logging
 import os
 
-from src.db.PostgresDbManager import PostgresDbManager
-from src.storage.S3StorageEngine import S3StorageEngine
-from src.storage.LocalStorageEngine import LocalStorageEngine
-from src.DbBackupRestoreBot import DbBackupRestoreBot
+from dbsavior.db.PostgresDbManager import PostgresDbManager
+from dbsavior.storage.S3StorageEngine import S3StorageEngine
+from dbsavior.storage.LocalStorageEngine import LocalStorageEngine
+from dbsavior.DbBackupRestoreBot import DbBackupRestoreBot
 
 
 def main():

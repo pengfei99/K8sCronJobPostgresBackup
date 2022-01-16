@@ -5,7 +5,7 @@ import os
 import sys
 import setuptools
 
-from src import __version__ as version
+from dbsavior import __version__ as version
 
 here = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, here)
@@ -29,7 +29,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/pengfei99/K8sCronJobPostgresBackup",
     # we need to indicate excitement which package will be published, otherwise import will raise module name not found
-    packages=setuptools.find_packages(include=['src']),
+    packages=setuptools.find_packages(include=['dbsavior']),
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: Apache Software License",

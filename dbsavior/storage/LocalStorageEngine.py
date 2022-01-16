@@ -3,7 +3,7 @@ import os
 import shutil
 from typing import Optional
 
-from src.storage.StorageEngineInterface import StorageEngineInterface
+from dbsavior.storage.StorageEngineInterface import StorageEngineInterface
 
 log = logging.getLogger(__name__)
 

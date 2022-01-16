@@ -6,7 +6,7 @@ import subprocess
 from datetime import datetime
 from psycopg2 import DatabaseError
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from src.db.DbManagerInterface import DbManagerInterface
+from dbsavior.db.DbManagerInterface import DbManagerInterface
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)

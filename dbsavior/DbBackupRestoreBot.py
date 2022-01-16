@@ -3,13 +3,13 @@ import datetime
 import logging
 from typing import Optional
 
-from src.db.DbManagerInterface import DbManagerInterface
-from src.db.PostgresDbManager import PostgresDbManager
+from dbsavior.db.DbManagerInterface import DbManagerInterface
+from dbsavior.db.PostgresDbManager import PostgresDbManager
 from util import get_date_format, get_date_limit_of_backup_file
 
-from src.storage.LocalStorageEngine import LocalStorageEngine
-from src.storage.S3StorageEngine import S3StorageEngine
-from src.storage.StorageEngineInterface import StorageEngineInterface
+from dbsavior.storage.LocalStorageEngine import LocalStorageEngine
+from dbsavior.storage.S3StorageEngine import S3StorageEngine
+from dbsavior.storage.StorageEngineInterface import StorageEngineInterface
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)

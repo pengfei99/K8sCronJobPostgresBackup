@@ -8,8 +8,8 @@ from boto3 import exceptions
 import logging
 from botocore.exceptions import ClientError
 
-from src.storage.ProgressPercentage import ProgressPercentage
-from src.storage.StorageEngineInterface import StorageEngineInterface
+from dbsavior.storage.ProgressPercentage import ProgressPercentage
+from dbsavior.storage.StorageEngineInterface import StorageEngineInterface
 
 log = logging.getLogger(__name__)
 
