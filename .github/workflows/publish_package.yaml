@@ -1,7 +1,7 @@
 name: Main workflow for publishing to pypi
 on:  # define the job trigger event, in our case, push our merge to branch master will trigger below action
     push:
-      branches: [master]
+      branches: [main]
 
 jobs:
   build-n-publish:
