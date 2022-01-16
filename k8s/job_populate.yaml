@@ -12,38 +12,34 @@ spec:
           image: liupengfei99/db_backup_restore:main
           env:
             - name: DB_LOGIN
-              value: "user-pengfei"
+              value: "changeMe" # your database login, example: user-pengfei
             - name: DB_PWD
-              value: "changeMe"
+              value: "changeMe" # your database pwd, example: afde3434gfe3r
             - name: DB_HOST
-              value: "postgresql-124499"
+              value: "changeMe" # your database server host name, example: 127.0.0.1
             - name: DB_PORT
-              value: "5432"
+              value: "5432"     # your database server port, example: 5432
             - name: AWS_S3_ENDPOINT
-              value: "minio.lab.sspcloud.fr"
+              value: "changeMe" # your s3 server endpoint, example: minio.lab.sspcloud.fr
             - name: AWS_ACCESS_KEY_ID
-              value: "changeMe"
+              value: "changeMe"  # your s3 server access key id, example:
             - name: AWS_SECRET_ACCESS_KEY
-              value: "changeMe"
+              value: "changeMe"  # your s3 server secret key, example:
             # The token is optional based on your s3 creds type, you can leave it empty
             - name: AWS_SESSION_TOKEN
-              value: ""
+              value: ""    # your s3 server access token, example:
             - name: BACKUP_FILE
-              value: "s3://pengfei/tmp/sql_backup/2022-01-12_test_pg_bck.sql"
+              value: "changeMe" # the full path of your backup file, example: s3://path/to/sql_backup/2022-01-12_test_pg_bck.sql
             - name: TARGET_DB
-              value: "pengfei"
+              value: "changeMe" # the database name that you want to restore, example: north_wind
           command: [sh, -c]
           args: ["python src/main.py --db_type postgres --storage_type s3 --action populate --db_login $DB_LOGIN 
                 --db_pwd $DB_PWD --db_host $DB_HOST --db_port $DB_PORT
                 --backup_file $BACKUP_FILE --target_db $TARGET_DB"]
       restartPolicy: Never
-  # A job's spec are immutable, we can't change them after job creation. We need to delete old job, and submit new job.
-  # completions default value is 1, it means if 1 pod complete and return 0. The job is considered finished succesfully.
   completions: 1
-  # parallelism default value is 1, it means 1 pod can run in parallel.
+
   parallelism: 1
-  # set a dead line to retry the job.
   activeDeadlineSeconds: 100
-  # auto remove the job after the job finished
   ttlSecondsAfterFinished: 150
   backoffLimit: 4
