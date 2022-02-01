@@ -48,23 +48,23 @@ def main():
     args_parser.add_argument("--backup_file",
                              metavar="full_file_path",
                              default=None,
-                             help="Parent dir for storing backup files (show with --action list_backups)")
+                             help="Full file path of the backup file that you want to populate in a database")
     args_parser.add_argument("--db_login",
                              metavar="db_login",
                              default=None,
-                             help="User login for connecting database (show with --action list_dbs)")
+                             help="User login for connecting database (show with --action list_dbs/populate/auto_restore/auto_backup)")
     args_parser.add_argument("--db_pwd",
                              metavar="db_pwd",
                              default=None,
-                             help="User login for connecting database (show with --action list_dbs)")
+                             help="User login for connecting database (show with --action list_dbs/populate/auto_restore/auto_backup)")
     args_parser.add_argument("--db_host",
                              metavar="db_host",
                              default=None,
-                             help="database host name (show with --action list_dbs)")
+                             help="database host name (show with --action list_dbs/populate/auto_restore/auto_backup)")
     args_parser.add_argument("--db_port",
                              metavar="db_port",
                              default="5432",
-                             help="database host name (show with --action list_dbs)")
+                             help="database host name (show with --action list_dbs/populate/auto_restore/auto_backup)")
     args_parser.add_argument("--target_db",
                              metavar="db_name",
                              default=None,
