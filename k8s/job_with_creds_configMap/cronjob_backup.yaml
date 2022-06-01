@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cron-auto-backup-db
+spec:
+  # the cronjob will be activated at every night at midnight
+  schedule: "0 0 * * *"
+  concurrencyPolicy: Forbid
+  suspend: false
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup-bot
+            image: liupengfei99/db_backup_restore:main
+            imagePullPolicy: IfNotPresent
+            env:
+              - name: DB_LOGIN
+                value: "user-pengfei"
+              - name: DB_PWD
+                value: "changeMe"
+              - name: DB_HOST
+                value: "postgresql-124499"
+              - name: DB_PORT
+                value: "5432"
+              - name: AWS_S3_ENDPOINT
+                value: "minio.lab.sspcloud.fr"
+              - name: AWS_ACCESS_KEY_ID # your s3 server access key id
+                  valueFrom:
+                    secretKeyRef:
+                      name: my-s3-creds
+                      key: accessKey
+              - name: AWS_SECRET_ACCESS_KEY # your s3 server secret key
+                  valueFrom:
+                    secretKeyRef:
+                      name: my-s3-creds
+                      key: secretKey
+                # The token is optional based on your s3 creds type, you can leave it empty
+              - name: AWS_SESSION_TOKEN
+                value: ""
+              - name: BACKUP_DIR
+                value: "s3://pengfei/tmp/sql_backup"
+              - name: TARGET_DB
+                value: "test"
+            command: [sh, -c]
+            args: ["python dbsavior/main.py --db_type postgres --storage_type s3 --action auto_backup --db_login $DB_LOGIN 
+                --db_pwd $DB_PWD --db_host $DB_HOST --db_port $DB_PORT
+                --backup_dir $BACKUP_DIR --target_db $TARGET_DB"]
+          restartPolicy: OnFailure

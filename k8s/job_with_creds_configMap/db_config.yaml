@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sql-lesson-init-configmap
+data:
+  DB_LOGIN: ""
+  DB_PWD:
+  DB_HOST:
+  DB_PORT: "5432"
+  AWS_S3_ENDPOINT: "minio.lab.sspcloud.fr"
+  BACKUP_FILE:   # the full path of the db backup file, example: s3://path/to/sql_backup/2022-01-12_test_pg_bck.sql
+  TARGET_DB: "defaultdb" # the database name that you want to restore, example: defaultdb
