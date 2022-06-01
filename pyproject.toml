@@ -1,6 +1,6 @@
 [tool.poetry]
 name="dbsavior"
-version = "0.1.0"
+version = "0.1.2"
 description="This backup restore bot can backup/restore a database and upload/download the backup file to/from a remote storage engine"
 authors = ["Liu Pengfei <liu.pengfei@hotmail.fr>"]
 
