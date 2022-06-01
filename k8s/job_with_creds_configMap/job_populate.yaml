@@ -11,22 +11,13 @@ spec:
         - name: populate-bot
           image: liupengfei99/db_backup_restore:main
           env:
-            - name: AWS_ACCESS_KEY_ID # your s3 server access key id
-              valueFrom:
-                secretKeyRef:
-                  name: my-s3-creds
-                  key: accessKey
-            - name: AWS_SECRET_ACCESS_KEY # your s3 server secret key
-              valueFrom:
-                secretKeyRef:
-                  name: my-s3-creds
-                  key: secretKey
-            # The token is optional based on your s3 creds type, you can leave it empty
-            - name: AWS_SESSION_TOKEN
-              value: ""    # your s3 server access token, example:
+            - name: BACKUP_FILE
+              value: "s3://projet-formation/diffusion/sda/06_SQL/north_wind.sql"  # the full path of the db backup file, example: s3://path/to/sql_backup/2022-01-12_test_pg_bck.sql
           envFrom:
             - configMapRef:
-                name: sql-lesson-init-configmap
+                name: dbsavior-job-init-configmap
+            - secretRef:
+                name: dbsavior-job-s3-secrets
           command: [sh, -c]
           args: ["python dbsavior/main.py --db_type postgres --storage_type s3 --action populate --db_login $DB_LOGIN 
                 --db_pwd $DB_PWD --db_host $DB_HOST --db_port $DB_PORT
@@ -37,4 +28,4 @@ spec:
   parallelism: 1
   activeDeadlineSeconds: 100
   ttlSecondsAfterFinished: 150
-  backoffLimit: 4
+  backoffLimit: 1
