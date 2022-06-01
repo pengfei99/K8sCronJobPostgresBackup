@@ -4,11 +4,9 @@ import logging
 from typing import Optional
 
 from dbsavior.db.DbManagerInterface import DbManagerInterface
-from dbsavior.db.PostgresDbManager import PostgresDbManager
+
 from util import get_date_format, get_date_limit_of_backup_file
 
-from dbsavior.storage.LocalStorageEngine import LocalStorageEngine
-from dbsavior.storage.S3StorageEngine import S3StorageEngine
 from dbsavior.storage.StorageEngineInterface import StorageEngineInterface
 
 log = logging.getLogger(__name__)

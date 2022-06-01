@@ -2,10 +2,10 @@ import argparse
 import logging
 import os
 
-from dbsavior.db.PostgresDbManager import PostgresDbManager
-from dbsavior.storage.S3StorageEngine import S3StorageEngine
-from dbsavior.storage.LocalStorageEngine import LocalStorageEngine
 from dbsavior.DbBackupRestoreBot import DbBackupRestoreBot
+from dbsavior.db.PostgresDbManager import PostgresDbManager
+from dbsavior.storage.LocalStorageEngine import LocalStorageEngine
+from dbsavior.storage.S3StorageEngine import S3StorageEngine
 
 
 def main():
@@ -52,11 +52,13 @@ def main():
     args_parser.add_argument("--db_login",
                              metavar="db_login",
                              default=None,
-                             help="User login for connecting database (show with --action list_dbs/populate/auto_restore/auto_backup)")
+                             help="User login for connecting database (show with --action list_dbs/populate"
+                                  "/auto_restore/auto_backup)")
     args_parser.add_argument("--db_pwd",
                              metavar="db_pwd",
                              default=None,
-                             help="User login for connecting database (show with --action list_dbs/populate/auto_restore/auto_backup)")
+                             help="User login for connecting database (show with --action list_dbs/populate"
+                                  "/auto_restore/auto_backup)")
     args_parser.add_argument("--db_host",
                              metavar="db_host",
                              default=None,
@@ -121,7 +123,7 @@ def main():
             dbs = db_manager.get_db_list()
             log.info(f"Find below databases: {dbs}")
         else:
-            log.error(f"Missing argument. Unable to connect to the database")
+            log.error("Missing argument. Unable to connect to the database")
             exit(1)
 
     # auto_backup task

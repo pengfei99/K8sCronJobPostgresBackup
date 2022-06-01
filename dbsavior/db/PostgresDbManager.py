@@ -1,11 +1,13 @@
 import gzip
 import logging
-from typing import Optional
-import psycopg2
 import subprocess
 from datetime import datetime
+from typing import Optional
+
+import psycopg2
 from psycopg2 import DatabaseError
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+
 from dbsavior.db.DbManagerInterface import DbManagerInterface
 
 log = logging.getLogger(__name__)
@@ -172,7 +174,7 @@ class PostgresDbManager(DbManagerInterface):
            If the dump file is created by using the -Fc option, (for example: pg_dump -Fc mydb > db.dump), the dump file
            has postgresql custom byte format. To restore it, we need to use the command:
            pg_restore 
-           
+
            If the dump file is created without the -Fc option (for example: pg_dump mydb > db.sql), the dump file has 
            sql(plain text) format. To restore such dump, we need to use below command:
            psql --dbname=postgresql://{user_name}:{user_pwd}@{host_name}:{port}/{db_name} -f {backup_file_path}
