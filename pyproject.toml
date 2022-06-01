@@ -28,7 +28,8 @@ boto3 = "^1.20.27"
 psycopg2-binary = "^2.9.3"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2.5"
+pytest = "^7.1.2"
+flake8 = "^4.0.1"
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]
